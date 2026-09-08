@@ -51,6 +51,16 @@ curl -X POST "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" \
     -d "secret_token=<AI_CHAT_TELEGRAM_WEBHOOK_SECRET>"
 ```
 
+## Widget themes
+
+The widget ships with several color themes: `blue`, `purple`, `orange`, `red`, `pink`, `indigo`, `emerald`, `amber`, `slate`, `periwinkle`, plus the `default` (teal) theme built into the base CSS. Pick one with:
+
+```
+AI_CHAT_WIDGET_THEME=purple
+```
+
+Each theme is just a small CSS override of the widget's color variables (`resources/dist/themes/<name>.css`) — copy one and register your own name to make a custom color scheme.
+
 ## Adding custom tools
 
 The chat can call your own PHP code while answering a customer (look up an order, check stock, etc.). See [`docs/creating-tools.md`](docs/creating-tools.md) for how to write and register a tool.
