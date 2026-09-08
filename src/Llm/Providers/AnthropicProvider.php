@@ -50,7 +50,9 @@ class AnthropicProvider implements LlmProviderInterface
         $response = Http::withHeaders([
             'x-api-key' => $this->settings->apiKey(),
             'anthropic-version' => self::API_VERSION,
-        ])->post($this->settings->endpoint(), $payload);
+        ])
+            ->retry(2, 200)
+            ->post($this->settings->endpoint(), $payload);
 
         if ($response->failed()) {
             throw new LlmProviderException(

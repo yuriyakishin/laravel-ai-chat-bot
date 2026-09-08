@@ -39,10 +39,9 @@ class OpenAiProvider implements LlmProviderInterface
             $payload['tools'] = $request->tools();
         }
 
-        $response = Http::withToken($this->settings->apiKey())->post(
-            $this->settings->endpoint(),
-            $payload
-        );
+        $response = Http::withToken($this->settings->apiKey())
+            ->retry(2, 200)
+            ->post($this->settings->endpoint(), $payload);
 
         if ($response->failed()) {
             throw new LlmProviderException(

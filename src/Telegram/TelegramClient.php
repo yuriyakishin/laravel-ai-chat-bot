@@ -33,7 +33,9 @@ class TelegramClient
             $payload['reply_to_message_id'] = $replyToMessageId;
         }
 
-        $response = Http::post("https://api.telegram.org/bot{$this->botToken}/sendMessage", $payload)->throw();
+        $response = Http::retry(2, 200)
+            ->post("https://api.telegram.org/bot{$this->botToken}/sendMessage", $payload)
+            ->throw();
 
         return $response->json('result.message_id');
     }
