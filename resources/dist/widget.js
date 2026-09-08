@@ -31,12 +31,19 @@
 
     function applyInlineMarkdown(text) {
         text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        text = text.replace(/(https?:\/\/[^\s<]+)/g, function (url) {
-            const trailingMatch = url.match(/[.,!?;:)\]]+$/);
-            const trailing = trailingMatch ? trailingMatch[0] : '';
-            const cleanUrl = trailing ? url.slice(0, -trailing.length) : url;
-            return '<a href="' + cleanUrl + '" target="_blank" rel="noopener noreferrer">' + cleanUrl + '</a>' + trailing;
-        });
+        text = text.replace(
+            /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<]+)/g,
+            function (match, linkText, linkUrl, bareUrl) {
+                if (linkUrl) {
+                    return '<a href="' + linkUrl + '" target="_blank" rel="noopener noreferrer">' + linkText + '</a>';
+                }
+
+                const trailingMatch = bareUrl.match(/[.,!?;:)\]]+$/);
+                const trailing = trailingMatch ? trailingMatch[0] : '';
+                const cleanUrl = trailing ? bareUrl.slice(0, -trailing.length) : bareUrl;
+                return '<a href="' + cleanUrl + '" target="_blank" rel="noopener noreferrer">' + cleanUrl + '</a>' + trailing;
+            }
+        );
         return text;
     }
 
