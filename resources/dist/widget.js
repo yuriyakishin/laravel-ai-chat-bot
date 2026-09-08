@@ -23,6 +23,65 @@
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function applyInlineMarkdown(text) {
+        return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    }
+
+    function renderContent(content) {
+        const lines = escapeHtml(content).split('\n');
+        const html = [];
+        let paragraph = [];
+        let list = null;
+
+        function flushParagraph() {
+            if (paragraph.length) {
+                html.push(paragraph.map(applyInlineMarkdown).join('<br>'));
+                paragraph = [];
+            }
+        }
+
+        function flushList() {
+            if (list) {
+                html.push('<' + list.type + '>' + list.items.map(function (item) {
+                    return '<li>' + applyInlineMarkdown(item) + '</li>';
+                }).join('') + '</' + list.type + '>');
+                list = null;
+            }
+        }
+
+        lines.forEach(function (line) {
+            const bulletMatch = line.match(/^-\s+(.*)$/);
+            const numberedMatch = line.match(/^\d+\.\s+(.*)$/);
+            const match = bulletMatch || numberedMatch;
+
+            if (match) {
+                flushParagraph();
+                const type = bulletMatch ? 'ul' : 'ol';
+
+                if (!list || list.type !== type) {
+                    flushList();
+                    list = { type: type, items: [] };
+                }
+
+                list.items.push(match[1]);
+            } else {
+                flushList();
+                paragraph.push(line);
+            }
+        });
+
+        flushList();
+        flushParagraph();
+
+        return html.join('');
+    }
+
     function renderMessage(role, content, isoString) {
         const row = document.createElement('div');
         row.className = 'ai-chat-message-row ai-chat-message-row-' + role;
@@ -39,7 +98,7 @@
 
         const bubble = document.createElement('div');
         bubble.className = 'ai-chat-message ai-chat-message-' + role;
-        bubble.textContent = content;
+        bubble.innerHTML = renderContent(content);
         group.appendChild(bubble);
 
         const time = document.createElement('div');

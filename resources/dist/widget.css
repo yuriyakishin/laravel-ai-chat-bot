@@ -204,6 +204,16 @@
     border-radius: 16px;
 }
 
+.ai-chat-message ul,
+.ai-chat-message ol {
+    margin: 6px 0;
+    padding-left: 20px;
+}
+
+.ai-chat-message li {
+    margin: 2px 0;
+}
+
 .ai-chat-message-user {
     background: var(--ai-chat-accent);
     color: var(--ai-chat-accent-text);
