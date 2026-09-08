@@ -1,0 +1,8 @@
+.ai-chat-widget {
+    --ai-chat-accent: #d97706;
+    --ai-chat-accent-dark: #92400e;
+    --ai-chat-accent-text: #ffffff;
+    --ai-chat-status: #4ade80;
+    --ai-chat-radius: 24px;
+    --ai-chat-font: inherit;
+}
