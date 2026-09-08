@@ -36,6 +36,10 @@ class TelegramWebhookController extends Controller
 
         $conversation = Conversation::find($telegramMessage->conversation_id);
 
+        if ($conversation === null) {
+            return response()->noContent();
+        }
+
         $conversation->messages()->create([
             'role' => 'admin',
             'content' => $request->input('message.text', ''),
