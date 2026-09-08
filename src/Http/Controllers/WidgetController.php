@@ -48,7 +48,12 @@ class WidgetController extends Controller
 
         $result = AiChat::send($owner, $uuid, $request->string('message')->toString());
 
-        return response()->json(['reply' => $result->reply()]);
+        $lastMessageId = Conversation::where('uuid', $result->conversationUuid())
+            ->first()
+            ->messages()
+            ->max('id');
+
+        return response()->json(['reply' => $result->reply(), 'last_message_id' => $lastMessageId]);
     }
 
     /**

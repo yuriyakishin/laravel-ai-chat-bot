@@ -263,6 +263,7 @@
         resizeInput();
         input.disabled = true;
         showTyping();
+        clearInterval(pollTimer);
 
         fetch('/' + routePrefix + '/send', {
             method: 'POST',
@@ -279,6 +280,9 @@
                 if (data.reply) {
                     renderMessage('assistant', data.reply);
                 }
+                if (typeof data.last_message_id === 'number') {
+                    lastMessageId = data.last_message_id;
+                }
             })
             .catch(function () {
                 hideTyping();
@@ -287,6 +291,7 @@
             .finally(function () {
                 input.disabled = false;
                 input.focus();
+                pollTimer = setInterval(pollMessages, 5000);
             });
     });
 })();
