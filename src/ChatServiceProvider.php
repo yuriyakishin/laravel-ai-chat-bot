@@ -62,5 +62,6 @@ class ChatServiceProvider extends ServiceProvider
         $this->publishes([__DIR__ . '/../resources/dist' => public_path('vendor/ai-chat'),], 'ai-chat-assets');
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'ai-chat');
+        $this->loadTranslationsFrom(__DIR__ . '/../resources/lang', 'ai-chat');
     }
 }

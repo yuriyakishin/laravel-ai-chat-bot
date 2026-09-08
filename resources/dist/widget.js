@@ -2,6 +2,7 @@
     const widget = document.querySelector('.ai-chat-widget');
     const csrfToken = widget.dataset.csrf;
     const routePrefix = widget.dataset.routePrefix;
+    const errorMessage = widget.dataset.errorMessage || 'Sorry, something went wrong.';
 
     const bubble = document.getElementById('ai-chat-bubble');
     const panel = document.getElementById('ai-chat-panel');
@@ -208,7 +209,7 @@
             })
             .catch(function () {
                 hideTyping();
-                renderMessage('assistant', 'Sorry, something went wrong.');
+                renderMessage('assistant', errorMessage);
             })
             .finally(function () {
                 input.disabled = false;
