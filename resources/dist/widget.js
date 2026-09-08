@@ -30,7 +30,14 @@
     }
 
     function applyInlineMarkdown(text) {
-        return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        text = text.replace(/(https?:\/\/[^\s<]+)/g, function (url) {
+            const trailingMatch = url.match(/[.,!?;:)\]]+$/);
+            const trailing = trailingMatch ? trailingMatch[0] : '';
+            const cleanUrl = trailing ? url.slice(0, -trailing.length) : url;
+            return '<a href="' + cleanUrl + '" target="_blank" rel="noopener noreferrer">' + cleanUrl + '</a>' + trailing;
+        });
+        return text;
     }
 
     function renderContent(content) {
