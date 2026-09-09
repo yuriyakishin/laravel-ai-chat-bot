@@ -3,13 +3,6 @@
     "description": "AI chat widget for Laravel with multiple LLM providers, persistent conversation history, function-calling tools, and human handoff to Telegram.",
     "type": "library",
     "license": "MIT",
-    "authors": [
-        {
-            "name": "Yuriy Akishin",
-            "email": "yuriy.akishin@gmail.com",
-            "homepage": "https://github.com/yuriyakishin"
-        }
-    ],
     "require": {
         "php": "^8.3",
         "illuminate/support": "^11.0|^12.0|^13.0",
@@ -46,5 +39,16 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true
         }
+    },
+    "authors": [
+        {
+            "name": "Yuriy Akishin",
+            "email": "yuriy.akishin@gmail.com",
+            "homepage": "https://github.com/yuriyakishin"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/yuriyakishin/laravel-ai-chat-bot/issues",
+        "source": "https://github.com/yuriyakishin/laravel-ai-chat-bot"
     }
 }
