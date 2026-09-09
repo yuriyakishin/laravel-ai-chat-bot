@@ -51,7 +51,7 @@ class AnthropicProvider implements LlmProviderInterface
             'x-api-key' => $this->settings->apiKey(),
             'anthropic-version' => self::API_VERSION,
         ])
-            ->retry(2, 200)
+            ->retry(2, 200, throw: false)
             ->post($this->settings->endpoint(), $payload);
 
         if ($response->failed()) {

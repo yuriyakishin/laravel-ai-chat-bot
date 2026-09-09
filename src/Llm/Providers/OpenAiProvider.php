@@ -40,7 +40,7 @@ class OpenAiProvider implements LlmProviderInterface
         }
 
         $response = Http::withToken($this->settings->apiKey())
-            ->retry(2, 200)
+            ->retry(2, 200, throw: false)
             ->post($this->settings->endpoint(), $payload);
 
         if ($response->failed()) {

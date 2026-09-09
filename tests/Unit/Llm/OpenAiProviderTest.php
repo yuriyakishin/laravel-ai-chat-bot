@@ -3,8 +3,12 @@
 use Illuminate\Support\Facades\Http;
 use Yu\AiChatBot\DTO\LlmRequest;
 use Yu\AiChatBot\Exceptions\LlmProviderException;
-use Yu\AiChatBot\Llm\LlmSettings;
+use Yu\AiChatBot\Llm\Settings\OpenAiSettings;
 use Yu\AiChatBot\Llm\Providers\OpenAiProvider;
+
+beforeEach(function () {
+    config(['ai-chat.llm.open_ai.api_key' => 'test-key']);
+});
 
 it('turns a successful OpenAI response into an LlmResponse', function () {
     Http::fake([
@@ -16,7 +20,7 @@ it('turns a successful OpenAI response into an LlmResponse', function () {
         ], 200),
     ]);
 
-    $settings = new LlmSettings();
+    $settings = new OpenAiSettings();
     $provider = new OpenAiProvider($settings);
     $request = new LlmRequest(
         messages: [['role' => 'user', 'content' => 'hi']]
@@ -40,7 +44,7 @@ it('throws a non-retryable exception on a 4xx response', function () {
         'api.openai.com/*' => Http::response(['error' => ['message' => 'bad request']], 400),
     ]);
 
-    $settings = new LlmSettings();
+    $settings = new OpenAiSettings();
     $provider = new OpenAiProvider($settings);
     $request = new LlmRequest([['role' => 'user', 'content' => 'hi']]);
 
@@ -57,7 +61,7 @@ it('throws a retryable exception on a 5xx response', function () {
         'api.openai.com/*' => Http::response(['error' => ['message' => 'server error']], 500),
     ]);
 
-    $settings = new LlmSettings();
+    $settings = new OpenAiSettings();
     $provider = new OpenAiProvider($settings);
     $request = new LlmRequest([['role' => 'user', 'content' => 'hi']]);
 

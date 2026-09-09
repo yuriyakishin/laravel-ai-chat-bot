@@ -2,11 +2,15 @@
 
 use Illuminate\Support\Facades\Http;
 use Yu\AiChatBot\Chat\AiChatService;
+use Yu\AiChatBot\Chat\CurrentConversation;
 use Yu\AiChatBot\Contracts\ChatResultInterface;
-use Yu\AiChatBot\Llm\LlmSettings;
+use Yu\AiChatBot\Llm\Settings\OpenAiSettings;
 use Yu\AiChatBot\Llm\Providers\OpenAiProvider;
+use Yu\AiChatBot\Llm\ToolRegistry;
 
 it('creates a conversation on first contact and persists both messages', function () {
+    config(['ai-chat.llm.open_ai.api_key' => 'test-key']);
+
     Http::fake([
         'api.openai.com/*' => Http::response([
             'choices' => [
@@ -34,9 +38,9 @@ it('creates a conversation on first contact and persists both messages', functio
         'message' => 'Hello!',
     ];
 
-    $settings = new LlmSettings();
+    $settings = new OpenAiSettings();
     $provider = new OpenAiProvider($settings);
-    $chatService = new AiChatService($provider);
+    $chatService = new AiChatService($provider, new ToolRegistry(), new CurrentConversation());
     $response = $chatService->send(...$request);
 
     expect($response)->toBeInstanceOf(ChatResultInterface::class)
