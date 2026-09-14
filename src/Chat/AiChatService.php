@@ -14,6 +14,7 @@ use Yu\AiChatBot\DTO\LlmRequest;
 use Yu\AiChatBot\Models\Conversation;
 use Yu\AiChatBot\Llm\ToolRegistry;
 use Yu\AiChatBot\Contracts\ToolCallInterface;
+use Yu\AiChatBot\Events\LlmResponseReceived;
 
 class AiChatService implements ChatServiceInterface
 {
@@ -62,6 +63,8 @@ class AiChatService implements ChatServiceInterface
             $tools = $round < $maxRounds ? $this->toolRegistry->definitions() : [];
 
             $response = $this->provider->send(new LlmRequest($messages, $tools));
+
+            event(new LlmResponseReceived($response, $conversationUuid));
 
             if ($response->toolCalls() === []) {
                 break;

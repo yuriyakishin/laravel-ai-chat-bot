@@ -15,11 +15,6 @@ return [
     'max_tool_rounds' => (int)env('AI_CHAT_MAX_TOOL_ROUNDS', 5),
     'welcome_message' => env('AI_CHAT_WELCOME_MESSAGE'),
     'system_prompt' => env('AI_CHAT_SYSTEM_PROMPT', "You are a customer support assistant. You may only use the information available through your tools or explicitly given in this conversation - never use your own general knowledge to answer. If you cannot find the answer this way, offer to connect the customer with a human administrator."),
-    'telegram' => [
-        'bot_token' => env('AI_CHAT_TELEGRAM_BOT_TOKEN', ''),
-        'admin_chat_id' => env('AI_CHAT_TELEGRAM_ADMIN_CHAT_ID', ''),
-        'webhook_secret' => env('AI_CHAT_TELEGRAM_WEBHOOK_SECRET', ''),
-    ],
 
     'tools' => [
         CurrentDateTimeTool::class,
@@ -45,5 +40,11 @@ return [
             'temperature' => env('AI_CHAT_LLM_ANTHROPIC_TEMPERATURE', 0.7),
             'max_tokens' => env('AI_CHAT_LLM_ANTHROPIC_MAX_TOKENS', 5000),
         ],
+    ],
+
+    'telegram' => [
+        'bot_token' => env('AI_CHAT_TELEGRAM_BOT_TOKEN', ''),
+        'admin_chat_id' => env('AI_CHAT_TELEGRAM_ADMIN_CHAT_ID', ''),
+        'webhook_secret' => env('AI_CHAT_TELEGRAM_WEBHOOK_SECRET', ''),
     ],
 ];
