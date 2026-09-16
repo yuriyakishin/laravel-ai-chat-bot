@@ -19,13 +19,13 @@ class TelegramWebhookController extends Controller
     public function handle(Request $request): Response
     {
         if ($request->header('X-Telegram-Bot-Api-Secret-Token') !== config('ai-chat.telegram.webhook_secret')) {
-            Log::warning('ai-chat: rejected Telegram webhook — secret token mismatch', [
+            Log::channel('ai-chat')->warning('rejected Telegram webhook — secret token mismatch', [
                 'header_present' => $request->hasHeader('X-Telegram-Bot-Api-Secret-Token'),
             ]);
             abort(403);
         }
 
-        Log::info('ai-chat: received Telegram webhook update', ['update' => $request->all()]);
+        Log::channel('ai-chat')->info('received Telegram webhook update', ['update' => $request->all()]);
 
         if (config('ai-chat.use_queue')) {
             TelegramReplyJob::dispatch($request->all());

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yu\AiChatBot;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Event;
 use Yu\AiChatBot\Contracts\LlmProviderInterface;
 use Yu\AiChatBot\Contracts\LlmSettingsInterface;
 use Yu\AiChatBot\Contracts\ChatServiceInterface;
@@ -12,6 +13,8 @@ use Yu\AiChatBot\Chat\RoutingChatService;
 use Yu\AiChatBot\Llm\ToolRegistry;
 use Yu\AiChatBot\Chat\CurrentConversation;
 use Yu\AiChatBot\Telegram\TelegramClient;
+use Yu\AiChatBot\Events\ConversationEscalatedToHumanEvent;
+use Yu\AiChatBot\Listeners\LogConversationEscalationListener;
 
 class ChatServiceProvider extends ServiceProvider
 {
@@ -36,6 +39,13 @@ class ChatServiceProvider extends ServiceProvider
                 config('ai-chat.telegram.bot_token'),
                 config('ai-chat.telegram.admin_chat_id'),)
         );
+
+        config([
+            'logging.channels.ai-chat' => [
+                'driver' => 'single',
+                'path' => storage_path('logs/ai-chat.log'),
+            ]
+        ]);
     }
 
     /**
@@ -63,5 +73,10 @@ class ChatServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'ai-chat');
         $this->loadTranslationsFrom(__DIR__ . '/../resources/lang', 'ai-chat');
+
+        Event::listen(
+            ConversationEscalatedToHumanEvent::class,
+            LogConversationEscalationListener::class
+        );
     }
 }

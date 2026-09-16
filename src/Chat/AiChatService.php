@@ -14,7 +14,7 @@ use Yu\AiChatBot\DTO\LlmRequest;
 use Yu\AiChatBot\Models\Conversation;
 use Yu\AiChatBot\Llm\ToolRegistry;
 use Yu\AiChatBot\Contracts\ToolCallInterface;
-use Yu\AiChatBot\Events\LlmResponseReceived;
+use Yu\AiChatBot\Events\LlmResponseReceivedEvent;
 
 class AiChatService implements ChatServiceInterface
 {
@@ -64,7 +64,7 @@ class AiChatService implements ChatServiceInterface
 
             $response = $this->provider->send(new LlmRequest($messages, $tools));
 
-            event(new LlmResponseReceived($response, $conversationUuid));
+            event(new LlmResponseReceivedEvent($response, $conversationUuid));
 
             if ($response->toolCalls() === []) {
                 break;

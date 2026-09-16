@@ -6,7 +6,7 @@ namespace Yu\AiChatBot\Events;
 
 use Yu\AiChatBot\Contracts\LlmResponseInterface;
 
-class LlmResponseReceived
+class LlmResponseReceivedEvent
 {
     /**
      * @param LlmResponseInterface $response

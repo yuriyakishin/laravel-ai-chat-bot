@@ -33,7 +33,7 @@ class TelegramReplyJob implements ShouldQueue
         $replyToMessageId = $this->payload['message']['reply_to_message']['message_id'] ?? null;
 
         if ($replyToMessageId === null) {
-            Log::warning('ai-chat: dropped Telegram reply without reply_to_message',
+            Log::channel('ai-chat')->warning('dropped Telegram reply without reply_to_message',
                 ['payload' => $this->payload]);
             return;
         }
@@ -42,7 +42,7 @@ class TelegramReplyJob implements ShouldQueue
         $telegramMessage = TelegramMessage::where('telegram_message_id', $replyToMessageId)->first();
 
         if ($telegramMessage === null) {
-            Log::warning('ai-chat: dropped Telegram reply with no matching telegram_message_id',
+            Log::channel('ai-chat')->warning('dropped Telegram reply with no matching telegram_message_id',
                 ['reply_to_message_id' => $replyToMessageId,]);
             return;
         }
@@ -51,7 +51,7 @@ class TelegramReplyJob implements ShouldQueue
         $conversation = $telegramMessage->conversation;
 
         if ($conversation === null) {
-            Log::warning('ai-chat: dropped Telegram reply - conversation no longer exists', [
+            Log::channel('ai-chat')->warning('dropped Telegram reply - conversation no longer exists', [
                 'reply_to_message_id' => $replyToMessageId,
                 'conversation_id' =>
                     $telegramMessage->conversation_id,

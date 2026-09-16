@@ -11,6 +11,7 @@ use Yu\AiChatBot\Chat\CurrentConversation;
 use Yu\AiChatBot\Telegram\TelegramClient;
 use Yu\AiChatBot\Models\Conversation;
 use Yu\AiChatBot\Models\TelegramMessage;
+use Yu\AiChatBot\Events\ConversationEscalatedToHumanEvent;
 
 class SwitchToHumanChatTool implements ToolInterface
 {
@@ -79,6 +80,8 @@ class SwitchToHumanChatTool implements ToolInterface
             'conversation_id' => $conversation->id,
             'telegram_message_id' => $messageId,
         ]);
+
+        event(new ConversationEscalatedToHumanEvent($conversation, $arguments));
 
         return ['status' => 'handoff_requested'];
     }

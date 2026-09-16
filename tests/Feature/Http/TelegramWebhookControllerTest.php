@@ -22,6 +22,7 @@ function postTelegramWebhook(array $payload, string $secret = 'test-secret')
 
 it('rejects an update with a mismatched secret token', function () {
     Log::spy();
+    Log::shouldReceive('channel')->with('ai-chat')->andReturnSelf();
 
     $response = postTelegramWebhook(['message' => []], secret: 'wrong-secret');
 
@@ -33,6 +34,7 @@ it('rejects an update with a mismatched secret token', function () {
 
 it('drops an update with no reply_to_message', function () {
     Log::spy();
+    Log::shouldReceive('channel')->with('ai-chat')->andReturnSelf();
 
     $response = postTelegramWebhook([
         'message' => ['message_id' => 99, 'text' => 'hello'],
@@ -47,6 +49,7 @@ it('drops an update with no reply_to_message', function () {
 
 it('drops a reply with no matching telegram_message_id', function () {
     Log::spy();
+    Log::shouldReceive('channel')->with('ai-chat')->andReturnSelf();
 
     $response = postTelegramWebhook([
         'message' => [
@@ -65,6 +68,7 @@ it('drops a reply with no matching telegram_message_id', function () {
 
 it('drops a reply whose conversation no longer exists', function () {
     Log::spy();
+    Log::shouldReceive('channel')->with('ai-chat')->andReturnSelf();
 
     Schema::disableForeignKeyConstraints();
     TelegramMessage::create(['conversation_id' => 999999, 'telegram_message_id' => 18]);
@@ -87,6 +91,7 @@ it('drops a reply whose conversation no longer exists', function () {
 
 it('routes a valid admin reply to the matched conversation', function () {
     Log::spy();
+    Log::shouldReceive('channel')->with('ai-chat')->andReturnSelf();
 
     $conversation = Conversation::create([
         'uuid' => 'conv-1',
