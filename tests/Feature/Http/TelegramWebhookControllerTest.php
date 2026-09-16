@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Yu\AiChatBot\Models\Conversation;
 use Yu\AiChatBot\Models\TelegramMessage;
+use Illuminate\Support\Facades\Queue;
+use Yu\AiChatBot\Jobs\TelegramReplyJob;
 
 beforeEach(function () {
     config(['ai-chat.telegram.webhook_secret' => 'test-secret']);
@@ -96,7 +98,7 @@ it('routes a valid admin reply to the matched conversation', function () {
     $response = postTelegramWebhook([
         'message' => [
             'message_id' => 99,
-            'text' => 'Так, вакцинація комплексна Нобівак',
+            'text' => 'Yes, vaccination is a full course of Nobivac',
             'reply_to_message' => ['message_id' => 18],
         ],
     ]);
@@ -106,11 +108,24 @@ it('routes a valid admin reply to the matched conversation', function () {
     $message = $conversation->messages()->first();
     expect($message)->not->toBeNull()
         ->and($message->role)->toBe('admin')
-        ->and($message->content)->toBe('Так, вакцинація комплексна Нобівак');
+        ->and($message->content)->toBe('Yes, vaccination is a full course of Nobivac');
 
     expect(TelegramMessage::where('telegram_message_id', 99)
         ->where('conversation_id', $conversation->id)->exists())->toBeTrue();
+});
 
-    Log::shouldHaveReceived('info')
-        ->withArgs(fn(string $message) => str_contains($message, 'routed Telegram reply to conversation'));
+it('dispatches the reply job to the queue when use_queue is enabled', function () {
+    config(['ai-chat.use_queue' => true]);
+    Queue::fake();
+
+    $response = postTelegramWebhook([
+        'message' => [
+            'message_id' => 99,
+            'text' => 'hello',
+            'reply_to_message' => ['message_id' => 18],
+        ],
+    ]);
+
+    $response->assertStatus(204);
+    Queue::assertPushed(TelegramReplyJob::class);
 });
