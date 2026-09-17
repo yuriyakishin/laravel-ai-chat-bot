@@ -49,4 +49,7 @@ return [
         'admin_chat_id' => env('AI_CHAT_TELEGRAM_ADMIN_CHAT_ID', ''),
         'webhook_secret' => env('AI_CHAT_TELEGRAM_WEBHOOK_SECRET', ''),
     ],
+
+    'prune_after_days' => (int)env('AI_CHAT_PRUNE_AFTER_DAYS', 30),
+    'rate_limit_per_minute' => (int)env('AI_CHAT_RATE_LIMIT_PER_MINUTE', 10),
 ];

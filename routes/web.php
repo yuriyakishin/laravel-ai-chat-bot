@@ -21,7 +21,7 @@ Route::middleware([
     ValidateCsrfToken::class,
 ])->prefix(config('ai-chat.route_prefix'))->group(function () {
     Route::get('messages', [WidgetController::class, 'messages'])->name('ai-chat.messages');
-    Route::post('send', [WidgetController::class, 'send'])->name('ai-chat.send');
+    Route::middleware('throttle:ai-chat-widget')->post('send', [WidgetController::class, 'send'])->name('ai-chat.send');
     Route::post('reset', [WidgetController::class, 'reset'])->name('ai-chat.reset');
 });
 

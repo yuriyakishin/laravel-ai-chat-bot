@@ -6,6 +6,8 @@ namespace Yu\AiChatBot;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Cache\RateLimiting\Limit;
 use Yu\AiChatBot\Contracts\LlmProviderInterface;
 use Yu\AiChatBot\Contracts\LlmSettingsInterface;
 use Yu\AiChatBot\Contracts\ChatServiceInterface;
@@ -15,6 +17,7 @@ use Yu\AiChatBot\Chat\CurrentConversation;
 use Yu\AiChatBot\Telegram\TelegramClient;
 use Yu\AiChatBot\Events\ConversationEscalatedToHumanEvent;
 use Yu\AiChatBot\Listeners\LogConversationEscalationListener;
+use Yu\AiChatBot\Console\Commands\PruneConversationsCommand;
 
 class ChatServiceProvider extends ServiceProvider
 {
@@ -74,9 +77,27 @@ class ChatServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'ai-chat');
         $this->loadTranslationsFrom(__DIR__ . '/../resources/lang', 'ai-chat');
 
+        /** registe listeners */
         Event::listen(
             ConversationEscalatedToHumanEvent::class,
             LogConversationEscalationListener::class
         );
+
+        /** registe ai-chat commands */
+        if ($this->app->runningInConsole()) {
+            $this->commands([PruneConversationsCommand::class]);
+        }
+
+        /** registe schedule */
+        $this->app->booted(function () {
+            $this->app->make(\Illuminate\Console\Scheduling\Schedule::class)
+                ->command('ai-chat:prune')
+                ->daily();
+        });
+
+        /** registe limiters */
+        RateLimiter::for('ai-chat-widget', function ($request) {
+            return Limit::perMinute(config('ai-chat.rate_limit_per_minute'))->by($request->ip());
+        });
     }
 }
