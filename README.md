@@ -146,7 +146,7 @@ Every customer message is then sent straight to your Telegram admin chat, and ad
 
 ## Widget themes
 
-The widget ships with several color themes: `mono` (black and white, the default), `blue`, `purple`, `orange`, `red`, `pink`, `indigo`, `emerald`, `amber`, `slate`, `periwinkle`, plus `default` (teal), built into the base CSS. Pick one with:
+The widget ships with several color themes: `mono` (black and white, the default), `blue`, `purple`, `orange`, `red`, `pink`, `indigo`, `emerald`, `amber`, `slate`, `periwinkle`, `cobalt`, plus `default` (teal), built into the base CSS. Pick one with:
 
 ```
 AI_CHAT_WIDGET_THEME=purple

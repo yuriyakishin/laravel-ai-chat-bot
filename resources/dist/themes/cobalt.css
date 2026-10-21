@@ -1,0 +1,16 @@
+.ai-chat-widget {
+    --ai-chat-accent: #0057B7;
+    --ai-chat-accent-dark: #00458F;
+    --ai-chat-accent-text: #ffffff;
+    --ai-chat-status: #4ade80;
+    --ai-chat-radius: 16px;
+    --ai-chat-font: inherit;
+}
+
+.ai-chat-bubble {
+    box-shadow: 0 10px 26px rgba(0, 87, 183, 0.4), 0 2px 6px rgba(0, 87, 183, 0.3);
+}
+
+.ai-chat-bubble:hover {
+    box-shadow: 0 14px 32px rgba(0, 87, 183, 0.45), 0 4px 10px rgba(0, 87, 183, 0.35);
+}
