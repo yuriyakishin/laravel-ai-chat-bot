@@ -28,6 +28,10 @@ class RoutingChatService implements ChatServiceInterface
      */
     public function send(mixed $owner, string $conversationUuid, string $message): ChatResultInterface
     {
+        if (config('ai-chat.mode') === ChatMode::HUMAN->value) {
+            return $this->telegramChatService->send($owner, $conversationUuid, $message);
+        }
+
         $status = Conversation::where('uuid', $conversationUuid)->value('status');
 
         return $status === 'human'

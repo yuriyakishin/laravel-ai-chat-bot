@@ -29,7 +29,11 @@ class TelegramChatService implements ChatServiceInterface
      */
     public function send(mixed $owner, string $conversationUuid, string $message): ChatResultInterface
     {
-        $conversation = Conversation::where('uuid', $conversationUuid)->firstOrFail();
+        $conversation = Conversation::query()->firstOrCreate(
+            ['uuid' => $conversationUuid],
+            ['owner_type' => $owner->getMorphClass(), 'owner_id' => $owner->getKey(), 'status' => 'human']
+        );
+
         $conversation->messages()->create(['role' => 'user', 'content' => $message]);
 
         $replyToMessageId = TelegramMessage::where('conversation_id',

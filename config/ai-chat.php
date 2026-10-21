@@ -1,5 +1,6 @@
 <?php
 
+use Yu\AiChatBot\Chat\ChatMode;
 use Yu\AiChatBot\Llm\Providers\AnthropicProvider;
 use Yu\AiChatBot\Llm\Providers\OpenAiProvider;
 use Yu\AiChatBot\Llm\Settings\AnthropicSettings;
@@ -8,6 +9,7 @@ use Yu\AiChatBot\Llm\Tools\CurrentDateTimeTool;
 use Yu\AiChatBot\Llm\Tools\SwitchToHumanChatTool;
 
 return [
+    'mode' => env('AI_CHAT_MODE', ChatMode::HYBRID->value),
     'enabled' => (bool)env('AI_CHAT_ENABLED', true),
     'default' => env('AI_CHAT_LLM_DEFAULT', 'open_ai'),
     'widget_theme' => env('AI_CHAT_WIDGET_THEME', 'default'),
