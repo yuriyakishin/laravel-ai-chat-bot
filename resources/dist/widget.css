@@ -191,7 +191,7 @@
 .ai-chat-message-group {
     display: flex;
     flex-direction: column;
-    max-width: 80%;
+    max-width: 88%;
 }
 
 .ai-chat-message-row-user .ai-chat-message-group {
@@ -227,7 +227,8 @@
     border-bottom-right-radius: 3px;
 }
 
-.ai-chat-message-assistant {
+.ai-chat-message-assistant,
+.ai-chat-message-admin {
     background: #fff;
     color: #24262b;
     box-shadow: 0 1px 4px rgba(15, 40, 35, 0.1);

@@ -12,7 +12,7 @@ return [
     'mode' => env('AI_CHAT_MODE', ChatMode::HYBRID->value),
     'enabled' => (bool)env('AI_CHAT_ENABLED', true),
     'default' => env('AI_CHAT_LLM_DEFAULT', 'open_ai'),
-    'widget_theme' => env('AI_CHAT_WIDGET_THEME', 'default'),
+    'widget_theme' => env('AI_CHAT_WIDGET_THEME', 'mono'),
     'route_prefix' => env('AI_CHAT_ROUTE_PREFIX', 'ai-chat'),
     'use_queue' => env('AI_CHAT_USE_QUEUE', false),
     'max_tool_rounds' => (int)env('AI_CHAT_MAX_TOOL_ROUNDS', 5),

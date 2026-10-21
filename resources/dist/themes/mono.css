@@ -1,0 +1,29 @@
+.ai-chat-widget {
+    --ai-chat-accent: #111111;
+    --ai-chat-accent-dark: #000000;
+    --ai-chat-accent-text: #ffffff;
+    --ai-chat-status: #ffffff;
+    --ai-chat-radius: 16px;
+    --ai-chat-font: inherit;
+}
+
+.ai-chat-bubble {
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.ai-chat-bubble:hover {
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.ai-chat-messages {
+    background: #f5f5f5;
+}
+
+.ai-chat-message-time,
+.ai-chat-typing span {
+    color: #999999;
+}
+
+.ai-chat-typing span {
+    background: #999999;
+}

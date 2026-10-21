@@ -100,7 +100,7 @@
         const row = document.createElement('div');
         row.className = 'ai-chat-message-row ai-chat-message-row-' + role;
 
-        if (role === 'assistant') {
+        if (role !== 'user') {
             const avatar = document.createElement('div');
             avatar.className = 'ai-chat-message-avatar';
             avatar.innerHTML = avatarSvg;
