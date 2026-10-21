@@ -7,12 +7,15 @@ namespace Yu\AiChatBot\Jobs;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Yu\AiChatBot\Models\Conversation;
 use Yu\AiChatBot\Models\TelegramMessage;
 use Yu\AiChatBot\Models\Message;
+use Yu\AiChatBot\Telegram\TelegramClient;
 
 class TelegramReplyJob implements ShouldQueue
 {
@@ -26,9 +29,10 @@ class TelegramReplyJob implements ShouldQueue
     }
 
     /**
+     * @param TelegramClient $telegramClient
      * @return void
      */
-    public function handle()
+    public function handle(TelegramClient $telegramClient)
     {
         $chatId = $this->payload['message']['chat']['id'] ?? null;
 
@@ -41,9 +45,16 @@ class TelegramReplyJob implements ShouldQueue
         $messageId = $this->payload['message']['message_id'] ?? null;
         $replyToMessageId = $this->payload['message']['reply_to_message']['message_id'] ?? null;
 
-        if ($messageId === null || $replyToMessageId === null) {
+        if ($messageId === null) {
+            Log::channel('ai-chat')->warning('dropped Telegram update without message_id',
+                ['payload' => $this->payload]);
+            return;
+        }
+
+        if ($replyToMessageId === null) {
             Log::channel('ai-chat')->warning('dropped Telegram reply without reply_to_message',
                 ['payload' => $this->payload]);
+            $this->warnAdmin($telegramClient, $messageId);
             return;
         }
 
@@ -78,5 +89,24 @@ class TelegramReplyJob implements ShouldQueue
             'conversation_id' => $conversation->id,
             'telegram_message_id' => $messageId,
         ]);
+    }
+
+    /**
+     * @param TelegramClient $telegramClient
+     * @param int $messageId
+     * @return void
+     */
+    private function warnAdmin(TelegramClient $telegramClient, int $messageId): void
+    {
+        try {
+            $telegramClient->sendMessage(
+                "⚠️ Message not delivered. Use Reply on a customer's message so it reaches the right chat.",
+                $messageId
+            );
+        } catch (ConnectionException|RequestException $e) {
+            Log::channel('ai-chat')->error('failed to send missing-reply warning to Telegram admin', [
+                'exception' => $e->getMessage(),
+            ]);
+        }
     }
 }
