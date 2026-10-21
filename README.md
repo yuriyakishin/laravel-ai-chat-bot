@@ -56,6 +56,7 @@ All options live in `config/ai-chat.php` after publishing. Every option is also 
 | Env variable | Default | Description |
 |---|---|---|
 | `AI_CHAT_ENABLED` | `true` | Turn the widget and its routes off entirely without uninstalling. |
+| `AI_CHAT_MODE` | `hybrid` | `hybrid` - the AI answers and hands off to a human over Telegram when needed; `human` - no AI, every message goes straight to Telegram. See [Human-only mode](#human-only-mode). |
 | `AI_CHAT_LLM_DEFAULT` | `open_ai` | Which provider to use: `open_ai` or `anthropic`. |
 | `AI_CHAT_WIDGET_THEME` | `default` | Widget color theme - see [Widget themes](#widget-themes). |
 | `AI_CHAT_ROUTE_PREFIX` | `ai-chat` | URL prefix for the widget's routes. |
@@ -95,6 +96,16 @@ curl -X POST "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" \
 ```
 
 **Important:** the admin must reply using Telegram's native **Reply** (swipe on the bot's message, or long-press → Reply) - not just type a new message. Telegram only includes the reply context needed to route the answer back to the right customer when you actually reply to a specific message.
+
+### Human-only mode
+
+To run the widget as a plain live chat without any LLM, set:
+
+```
+AI_CHAT_MODE=human
+```
+
+Every customer message is then sent straight to your Telegram admin chat, and admin replies come back to the widget the same way as after a handoff. The Telegram settings above are required; LLM API keys are not used in this mode.
 
 ## Widget themes
 
