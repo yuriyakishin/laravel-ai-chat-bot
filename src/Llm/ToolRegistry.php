@@ -22,6 +22,15 @@ class ToolRegistry
 
     /**
      * @param string $name
+     * @return bool
+     */
+    public function has(string $name): bool
+    {
+        return isset($this->tools[$name]);
+    }
+
+    /**
+     * @param string $name
      * @return ToolInterface
      */
     public function get(string $name): ToolInterface

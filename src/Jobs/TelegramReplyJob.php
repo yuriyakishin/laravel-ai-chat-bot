@@ -30,9 +30,18 @@ class TelegramReplyJob implements ShouldQueue
      */
     public function handle()
     {
+        $chatId = $this->payload['message']['chat']['id'] ?? null;
+
+        if ((string)$chatId !== (string)config('ai-chat.telegram.admin_chat_id')) {
+            Log::channel('ai-chat')->warning('dropped Telegram update from a non-admin chat',
+                ['chat_id' => $chatId]);
+            return;
+        }
+
+        $messageId = $this->payload['message']['message_id'] ?? null;
         $replyToMessageId = $this->payload['message']['reply_to_message']['message_id'] ?? null;
 
-        if ($replyToMessageId === null) {
+        if ($messageId === null || $replyToMessageId === null) {
             Log::channel('ai-chat')->warning('dropped Telegram reply without reply_to_message',
                 ['payload' => $this->payload]);
             return;
@@ -67,7 +76,7 @@ class TelegramReplyJob implements ShouldQueue
 
         TelegramMessage::create([
             'conversation_id' => $conversation->id,
-            'telegram_message_id' => $this->payload['message']['message_id'] ?? null,
+            'telegram_message_id' => $messageId,
         ]);
     }
 }

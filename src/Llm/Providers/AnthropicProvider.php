@@ -131,7 +131,7 @@ class AnthropicProvider implements LlmProviderInterface
                         'type' => 'tool_use',
                         'id' => $call['id'],
                         'name' => $call['function']['name'],
-                        'input' => json_decode($call['function']['arguments'], true),
+                        'input' => (object)json_decode($call['function']['arguments'], true),
                     ];
                 }
 

@@ -22,11 +22,7 @@ class WidgetController extends Controller
      */
     public function messages(Request $request): JsonResponse
     {
-        $owner = $this->resolveOwner($request);
-
-        $conversation = Conversation::where('owner_type', $owner->getMorphClass())
-            ->where('owner_id', (string)$owner->getKey())
-            ->first();
+        $conversation = $this->activeConversation($this->resolveOwner($request));
 
         $messages = $conversation ? $conversation->messages()
             ->whereIn('role', ['user', 'assistant', 'admin'])
@@ -62,7 +58,7 @@ class WidgetController extends Controller
      */
     public function reset(Request $request): JsonResponse
     {
-        Cookie::queue(Cookie::forget('ai_chat_visitor_id'));
+        $this->activeConversation($this->resolveOwner($request))?->update(['status' => 'closed']);
 
         return response()->json(['status' => 'ok']);
     }
@@ -93,10 +89,19 @@ class WidgetController extends Controller
      */
     private function resolveConversationUuid(object $owner): string
     {
-        $conversation = Conversation::where('owner_type', $owner->getMorphClass())
-            ->where('owner_id', (string)$owner->getKey())
-            ->first();
+        return $this->activeConversation($owner)?->uuid ?? (string)Str::uuid();
+    }
 
-        return $conversation?->uuid ?? (string)Str::uuid();
+    /**
+     * @param object $owner
+     * @return Conversation|null
+     */
+    private function activeConversation(object $owner): ?Conversation
+    {
+        return Conversation::where('owner_type', $owner->getMorphClass())
+            ->where('owner_id', (string)$owner->getKey())
+            ->where('status', '!=', 'closed')
+            ->latest('id')
+            ->first();
     }
 }

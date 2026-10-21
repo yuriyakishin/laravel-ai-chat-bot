@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 use Yu\AiChatBot\Jobs\TelegramReplyJob;
 
 class TelegramWebhookController extends Controller
@@ -30,7 +31,13 @@ class TelegramWebhookController extends Controller
         if (config('ai-chat.use_queue')) {
             TelegramReplyJob::dispatch($request->all());
         } else {
-            TelegramReplyJob::dispatchSync($request->all());
+            try {
+                TelegramReplyJob::dispatchSync($request->all());
+            } catch (Throwable $e) {
+                Log::channel('ai-chat')->error('failed to process Telegram webhook update', [
+                    'exception' => $e->getMessage(),
+                ]);
+            }
         }
 
         return response()->noContent();

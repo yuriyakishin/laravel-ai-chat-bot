@@ -26,13 +26,13 @@
     function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
-        return div.innerHTML;
+        return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
     function applyInlineMarkdown(text) {
         text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         text = text.replace(
-            /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<]+)/g,
+            /\[([^\]]+)\]\((https?:\/\/(?:(?!&quot;|&#39;)[^\s)])+)\)|(https?:\/\/(?:(?!&quot;|&#39;)[^\s<])+)/g,
             function (match, linkText, linkUrl, bareUrl) {
                 if (linkUrl) {
                     return '<a href="' + linkUrl + '" target="_blank" rel="noopener noreferrer">' + linkText + '</a>';
@@ -274,7 +274,12 @@
             },
             body: JSON.stringify({ message: message }),
         })
-            .then(function (response) { return response.json(); })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
             .then(function (data) {
                 hideTyping();
                 if (data.reply) {

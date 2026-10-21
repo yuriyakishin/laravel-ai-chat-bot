@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Yu\AiChatBot\Chat;
 
 use Yu\AiChatBot\Contracts\LlmProviderInterface;
-use Yu\AiChatBot\Contracts\LlmRequestInterface;
-use Yu\AiChatBot\Contracts\LlmResponseInterface;
 use Yu\AiChatBot\Contracts\ChatServiceInterface;
 use Yu\AiChatBot\Contracts\ChatResultInterface;
 use Yu\AiChatBot\DTO\ChatResult;
@@ -79,7 +77,7 @@ class AiChatService implements ChatServiceInterface
                         'type' => 'function',
                         'function' => [
                             'name' => $call->name(),
-                            'arguments' => json_encode($call->arguments()),
+                            'arguments' => json_encode((object)$call->arguments()),
                         ],
                     ],
                     $response->toolCalls()
@@ -87,7 +85,9 @@ class AiChatService implements ChatServiceInterface
             ];
 
             foreach ($response->toolCalls() as $call) {
-                $result = $this->toolRegistry->get($call->name())->execute($call->arguments());
+                $result = $this->toolRegistry->has($call->name())
+                    ? $this->toolRegistry->get($call->name())->execute($call->arguments())
+                    : ['error' => "Unknown tool: {$call->name()}"];
 
                 $conversation->messages()->create([
                     'role' => 'tool',
