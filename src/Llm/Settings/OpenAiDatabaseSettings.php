@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Yu\AiChatBot\Llm\Settings;
 
-use Illuminate\Support\Facades\Cache;
 use Yu\AiChatBot\Contracts\LlmSettingsInterface;
+use Yu\AiChatBot\Exceptions\LlmProviderException;
 use Yu\AiChatBot\Models\LlmSetting;
 
 class OpenAiDatabaseSettings implements LlmSettingsInterface
@@ -57,10 +57,10 @@ class OpenAiDatabaseSettings implements LlmSettingsInterface
      */
     private function settings(): array
     {
-        return $this->settings ??= Cache::remember(
-            'ai-chat:llm-settings:open_ai',
-            now()->addMinutes(5),
-            fn() => LlmSetting::where('provider', 'open_ai')->firstOrFail()->settings
-        );
+        return $this->settings ??= LlmSetting::where('provider', 'open_ai')->value('settings')
+            ?? throw new LlmProviderException(
+                'OpenAI settings are not configured: no "open_ai" row in ai_chat_llm_settings.',
+                retryable: false,
+            );
     }
 }

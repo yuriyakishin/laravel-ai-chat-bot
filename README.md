@@ -39,6 +39,25 @@ Set your OpenAI key in `.env`:
 AI_CHAT_LLM_OPEN_AI_API_KEY=sk-...
 ```
 
+## Upgrading
+
+After updating the package, run the new migrations and republish the widget assets:
+
+```bash
+composer update yu-laravel/laravel-ai-chat-bot
+php artisan migrate
+php artisan vendor:publish --tag=ai-chat-assets --force
+php artisan config:clear
+```
+
+Skipping `migrate` breaks admin replies from Telegram, because the package expects the new database columns.
+
+**From 1.3.x:**
+
+- `Yu\AiChatBot\Contracts\LlmRequestInterface` has a new method `allowToolCalls(): bool`. If you implement this interface yourself, add it. If you wrote a custom provider, don't let the model call tools when it returns `false` (the built-in providers send `tool_choice: none`).
+- `AI_CHAT_TELEGRAM_WEBHOOK_SECRET` is now required for admin replies: with an empty secret every webhook call is rejected with `403`.
+- Settings stored in `ai_chat_llm_settings` are now encrypted with your `APP_KEY`. The migration encrypts existing rows.
+
 ## Usage
 
 Include the widget in a Blade layout:
@@ -51,29 +70,57 @@ That's it - the widget renders itself, and its endpoints are namespaced under `/
 
 ## Configuration
 
-All options live in `config/ai-chat.php` after publishing. Every option is also overridable via `.env`:
+All options live in `config/ai-chat.php` after publishing. Most of them can be overridden via `.env` (the list of tools is set in the config file only):
 
 | Env variable | Default | Description |
 |---|---|---|
-| `AI_CHAT_ENABLED` | `true` | Turn the widget and its routes off entirely without uninstalling. |
-| `AI_CHAT_MODE` | `hybrid` | `hybrid` - the AI answers and hands off to a human over Telegram when needed; `human` - no AI, every message goes straight to Telegram. See [Human-only mode](#human-only-mode). |
+| `AI_CHAT_ENABLED` | `true` | Hide the widget and turn off its routes without uninstalling. The Telegram webhook stays active, so admin replies are still saved. |
+| `AI_CHAT_MODE` | `hybrid` | `hybrid` - the AI answers and hands off to a human over Telegram when needed; `ai` - the AI only, no handoff; `human` - no AI, every message goes straight to Telegram. See [Human-only mode](#human-only-mode). |
 | `AI_CHAT_LLM_DEFAULT` | `open_ai` | Which provider to use: `open_ai` or `anthropic`. |
 | `AI_CHAT_WIDGET_THEME` | `mono` | Widget color theme - see [Widget themes](#widget-themes). |
 | `AI_CHAT_ROUTE_PREFIX` | `ai-chat` | URL prefix for the widget's routes. |
-| `AI_CHAT_MAX_TOOL_ROUNDS` | `5` | Max number of tool-calling round trips per reply, as a safety cap. |
+| `AI_CHAT_MAX_TOOL_ROUNDS` | `5` | Max number of tool-calling round trips per reply, as a safety cap. In the last round the model must answer with text. |
+| `AI_CHAT_HISTORY_LIMIT` | `30` | Max number of previous user/assistant messages sent to the LLM with each request. |
+| `AI_CHAT_LLM_TIMEOUT` | `60` | Timeout in seconds for one LLM request. Connection errors and 5xx responses are retried twice. |
+| `AI_CHAT_RATE_LIMIT_PER_MINUTE` | `10` | Max messages per minute a single IP address can send to the widget. |
+| `AI_CHAT_USE_QUEUE` | `false` | Process Telegram webhook updates on the queue. Requires a running `php artisan queue:work`. |
+| `AI_CHAT_PRUNE_AFTER_DAYS` | `30` | Conversations with no new messages for this many days are deleted daily. `0` turns pruning off. See [Pruning old conversations](#pruning-old-conversations). |
 | `AI_CHAT_WELCOME_MESSAGE` | - | Optional greeting shown before the customer sends anything. |
 | `AI_CHAT_SYSTEM_PROMPT` | a sensible default | Instructions given to the LLM - customize this for your domain. |
 | `AI_CHAT_LLM_OPEN_AI_API_KEY` | - | Required if using the OpenAI provider. |
 | `AI_CHAT_LLM_OPEN_AI_MODEL` | `gpt-4o-mini` | OpenAI model name. |
+| `AI_CHAT_LLM_OPEN_AI_TEMPERATURE` / `_MAX_TOKENS` | `0.7` / `5000` | OpenAI sampling temperature and max reply length. |
+| `AI_CHAT_LLM_OPEN_AI_ENDPOINT` | `https://api.openai.com/v1/chat/completions` | Change it to use an OpenAI-compatible API (Azure, a proxy). |
 | `AI_CHAT_LLM_ANTHROPIC_API_KEY` | - | Required if using the Anthropic provider. |
 | `AI_CHAT_LLM_ANTHROPIC_MODEL` | `claude-sonnet-5` | Anthropic model name. |
+| `AI_CHAT_LLM_ANTHROPIC_TEMPERATURE` / `_MAX_TOKENS` | `0.7` / `5000` | Anthropic sampling temperature and max reply length. |
+| `AI_CHAT_LLM_ANTHROPIC_ENDPOINT` | `https://api.anthropic.com/v1/messages` | Anthropic API URL. |
 | `AI_CHAT_TELEGRAM_BOT_TOKEN` | - | See [Human handoff via Telegram](#human-handoff-via-telegram). |
 | `AI_CHAT_TELEGRAM_ADMIN_CHAT_ID` | - | See [Human handoff via Telegram](#human-handoff-via-telegram). |
-| `AI_CHAT_TELEGRAM_WEBHOOK_SECRET` | - | See [Human handoff via Telegram](#human-handoff-via-telegram). |
+| `AI_CHAT_TELEGRAM_WEBHOOK_SECRET` | - | Required for admin replies: if empty, every webhook call is rejected with `403`. See [Human handoff via Telegram](#human-handoff-via-telegram). |
 
 ## LLM provider
 
-OpenAI and Anthropic are both supported out of the box, selected via `AI_CHAT_LLM_DEFAULT` (`open_ai` or `anthropic`; `open_ai` is the default). Set the matching API key (`AI_CHAT_LLM_OPEN_AI_API_KEY` or `AI_CHAT_LLM_ANTHROPIC_API_KEY`) for whichever one you use. To add another provider, implement `Yu\AiChatBot\Contracts\LlmProviderInterface` and `Yu\AiChatBot\Contracts\LlmSettingsInterface`, then point `provider_class`/`settings_class` for that provider at your classes in `config/ai-chat.php`.
+OpenAI and Anthropic are both supported out of the box, selected via `AI_CHAT_LLM_DEFAULT` (`open_ai` or `anthropic`; `open_ai` is the default). Set the matching API key (`AI_CHAT_LLM_OPEN_AI_API_KEY` or `AI_CHAT_LLM_ANTHROPIC_API_KEY`) for whichever one you use. To add another provider, implement `Yu\AiChatBot\Contracts\LlmProviderInterface` and `Yu\AiChatBot\Contracts\LlmSettingsInterface`, then point `provider_class`/`settings_class` for that provider at your classes in `config/ai-chat.php`. When `LlmRequestInterface::allowToolCalls()` returns `false`, your provider must not let the model call tools.
+
+## Pruning old conversations
+
+The package registers `ai-chat:prune` in the Laravel scheduler to run daily. It deletes conversations with no new messages for `AI_CHAT_PRUNE_AFTER_DAYS` days (30 by default), together with their messages. This only runs if your app's scheduler is set up (`php artisan schedule:run` from cron). To run it by hand:
+
+```bash
+php artisan ai-chat:prune
+```
+
+Set `AI_CHAT_PRUNE_AFTER_DAYS=0` to keep conversations forever.
+
+## Events
+
+You can listen to these events, for example to send notifications or collect statistics:
+
+- `Yu\AiChatBot\Events\ConversationEscalatedToHumanEvent` - a conversation was handed off to a human in Telegram.
+- `Yu\AiChatBot\Events\LlmResponseReceivedEvent` - the LLM returned a response (includes token usage).
+
+To send a message from your own code, use the `AiChat` facade: `AiChat::send($owner, $conversationUuid, $message)`.
 
 ## Human handoff via Telegram
 
@@ -98,10 +145,10 @@ If `result` is empty (`[]`), send the bot another message and reload. If it's st
 ```
 AI_CHAT_TELEGRAM_BOT_TOKEN=123456789:AAExample...
 AI_CHAT_TELEGRAM_ADMIN_CHAT_ID=123456789
-AI_CHAT_TELEGRAM_WEBHOOK_SECRET=any-long-random-string
+AI_CHAT_TELEGRAM_WEBHOOK_SECRET=paste-output-of-openssl-rand-hex-32
 ```
 
-`AI_CHAT_TELEGRAM_WEBHOOK_SECRET` is a string you make up yourself (e.g. `openssl rand -hex 32`); Telegram sends it with every webhook call so your app can reject requests that don't come from Telegram. Run `php artisan config:clear` afterwards if your config is cached.
+`AI_CHAT_TELEGRAM_WEBHOOK_SECRET` is a string you make up yourself - generate it with `openssl rand -hex 32`. Telegram allows only `A-Z`, `a-z`, `0-9`, `_` and `-`, up to 256 characters. Telegram sends it with every webhook call so your app can reject requests that don't come from Telegram. The secret is required: if it's empty, the webhook rejects every call with `403`. Run `php artisan config:clear` afterwards if your config is cached.
 
 **4. Register the webhook** so admin replies reach your app:
 
@@ -123,16 +170,18 @@ curl "https://api.telegram.org/bot<BOT_TOKEN>/getWebhookInfo"
 
 ### Replying to customers
 
-The admin must reply using Telegram's native **Reply** (swipe on the bot's message, or long-press → Reply) - not just type a new message. Telegram only includes the reply context needed to route the answer back to the right customer when you actually reply to a specific message. If the admin sends a plain message instead, the bot replies with a warning and the message is not delivered to any customer. Messages from any chat other than `AI_CHAT_TELEGRAM_ADMIN_CHAT_ID` are ignored.
+The admin must reply using Telegram's native **Reply** (swipe on the bot's message, or long-press → Reply) - not just type a new message. Telegram only includes the reply context needed to route the answer back to the right customer when you actually reply to a specific message. If the admin sends a plain message instead, the bot replies with a warning and the message is not delivered to any customer. The bot also warns the admin when a reply has no text (photos, stickers and files are not supported) or when the customer has already closed the chat. Messages from any chat other than `AI_CHAT_TELEGRAM_ADMIN_CHAT_ID` are ignored.
 
 ### Troubleshooting
 
 If admin replies don't show up in the widget:
 
 - Run `getWebhookInfo` and look at `last_error_message`.
-- Make sure `AI_CHAT_TELEGRAM_WEBHOOK_SECRET` in `.env` matches the `secret_token` you passed to `setWebhook` - otherwise the webhook is rejected with `403`.
+- Make sure `AI_CHAT_TELEGRAM_WEBHOOK_SECRET` in `.env` is set and matches the `secret_token` you passed to `setWebhook` - otherwise the webhook is rejected with `403`. The log entry shows `secret_configured: false` when the secret is empty.
+- If `AI_CHAT_USE_QUEUE=true`, make sure a queue worker (`php artisan queue:work`) is running.
+- Make sure you ran `php artisan migrate` after the last package update.
 - Make sure the admin used **Reply**, from the chat set in `AI_CHAT_TELEGRAM_ADMIN_CHAT_ID`.
-- Check `storage/logs/ai-chat.log` - rejected and dropped webhook updates are logged there.
+- Check `storage/logs/ai-chat.log` - rejected and dropped webhook updates are logged there (only message IDs, not message text). To use your own log settings, define an `ai-chat` channel in `config/logging.php`.
 
 ### Human-only mode
 

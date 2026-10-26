@@ -17,4 +17,11 @@ interface LlmRequestInterface
      * @return array<int, array{type: string, function: array}>
      */
     public function tools(): array;
+
+    /**
+     * Whether the LLM may call the tools; when false the tools are only sent so the history stays valid.
+     *
+     * @return bool
+     */
+    public function allowToolCalls(): bool;
 }

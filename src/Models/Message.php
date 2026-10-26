@@ -13,6 +13,8 @@ class Message extends Model
 
     protected $fillable = ['conversation_id', 'role', 'content'];
 
+    protected $touches = ['conversation'];
+
     /**
      * @return BelongsTo
      */

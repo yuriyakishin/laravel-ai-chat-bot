@@ -26,6 +26,7 @@ class WidgetController extends Controller
 
         $messages = $conversation ? $conversation->messages()
             ->whereIn('role', ['user', 'assistant', 'admin'])
+            ->where('id', '>', $request->integer('after'))
             ->orderBy('id')->get(['id', 'role', 'content', 'created_at']) : collect();
 
         return response()->json(['messages' => $messages]);

@@ -177,7 +177,7 @@
     }
 
     function pollMessages() {
-        fetch('/' + routePrefix + '/messages', {
+        fetch('/' + routePrefix + '/messages?after=' + encodeURIComponent(lastMessageId), {
             headers: { 'Accept': 'application/json' },
         })
             .then(function (response) { return response.json(); })
@@ -195,16 +195,26 @@
         return panel.classList.contains('ai-chat-panel-open');
     }
 
+    function startPolling() {
+        stopPolling();
+        pollTimer = setInterval(pollMessages, 5000);
+    }
+
+    function stopPolling() {
+        clearInterval(pollTimer);
+        pollTimer = null;
+    }
+
     function openPanel() {
         panel.classList.add('ai-chat-panel-open');
         loadHistory();
         input.focus();
-        pollTimer = setInterval(pollMessages, 5000);
+        startPolling();
     }
 
     function closePanel() {
         panel.classList.remove('ai-chat-panel-open');
-        clearInterval(pollTimer);
+        stopPolling();
     }
 
     function resizeInput() {
@@ -263,7 +273,7 @@
         resizeInput();
         input.disabled = true;
         showTyping();
-        clearInterval(pollTimer);
+        stopPolling();
 
         fetch('/' + routePrefix + '/send', {
             method: 'POST',
@@ -296,7 +306,9 @@
             .finally(function () {
                 input.disabled = false;
                 input.focus();
-                pollTimer = setInterval(pollMessages, 5000);
+                if (isPanelOpen()) {
+                    startPolling();
+                }
             });
     });
 })();

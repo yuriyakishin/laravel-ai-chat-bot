@@ -18,7 +18,13 @@ class PruneConversationsCommand extends Command
      */
     public function handle(): int
     {
-        $days = config('ai-chat.prune_after_days');
+        $days = (int)config('ai-chat.prune_after_days');
+
+        if ($days <= 0) {
+            $this->info('Pruning is disabled (ai-chat.prune_after_days <= 0).');
+            return self::SUCCESS;
+        }
+
         $count = Conversation::where('updated_at', '<', now()->subDays($days))->delete();
         $this->info("Pruned {$count} conversation(s).");
         return self::SUCCESS;

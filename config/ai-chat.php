@@ -16,6 +16,8 @@ return [
     'route_prefix' => env('AI_CHAT_ROUTE_PREFIX', 'ai-chat'),
     'use_queue' => env('AI_CHAT_USE_QUEUE', false),
     'max_tool_rounds' => (int)env('AI_CHAT_MAX_TOOL_ROUNDS', 5),
+    'history_limit' => (int)env('AI_CHAT_HISTORY_LIMIT', 30),
+    'llm_timeout' => (int)env('AI_CHAT_LLM_TIMEOUT', 60),
     'welcome_message' => env('AI_CHAT_WELCOME_MESSAGE'),
     'system_prompt' => env('AI_CHAT_SYSTEM_PROMPT',
         "You are a customer support assistant. You may only use the information available through your tools or explicitly given in this conversation - never use your own general knowledge to answer. If you cannot find the answer this way, offer to connect the customer with a human administrator."),

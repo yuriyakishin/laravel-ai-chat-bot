@@ -47,19 +47,26 @@ class TelegramReplyJob implements ShouldQueue
 
         if ($messageId === null) {
             Log::channel('ai-chat')->warning('dropped Telegram update without message_id',
-                ['payload' => $this->payload]);
+                ['update_id' => $this->payload['update_id'] ?? null]);
             return;
         }
 
         if ($replyToMessageId === null) {
             Log::channel('ai-chat')->warning('dropped Telegram reply without reply_to_message',
-                ['payload' => $this->payload]);
-            $this->warnAdmin($telegramClient, $messageId);
+                ['message_id' => $messageId]);
+            $this->warnAdmin(
+                $telegramClient,
+                $messageId,
+                "⚠️ Message not delivered. Use Reply on a customer's message so it reaches the right chat."
+            );
             return;
         }
 
         /** @var TelegramMessage $telegramMessage */
-        $telegramMessage = TelegramMessage::where('telegram_message_id', $replyToMessageId)->first();
+        $telegramMessage = TelegramMessage::where('telegram_message_id', $replyToMessageId)
+            ->where(fn($query) => $query->where('chat_id', $chatId)->orWhereNull('chat_id'))
+            ->latest('id')
+            ->first();
 
         if ($telegramMessage === null) {
             Log::channel('ai-chat')->warning('dropped Telegram reply with no matching telegram_message_id',
@@ -79,14 +86,39 @@ class TelegramReplyJob implements ShouldQueue
             return;
         }
 
+        $text = $this->payload['message']['text'] ?? '';
+
+        if ($text === '') {
+            Log::channel('ai-chat')->warning('dropped Telegram reply without text', ['message_id' => $messageId]);
+            $this->warnAdmin(
+                $telegramClient,
+                $messageId,
+                '⚠️ Message not delivered. Only text messages can be sent to the customer.'
+            );
+            return;
+        }
+
+        if ($conversation->status === 'closed') {
+            Log::channel('ai-chat')->warning('dropped Telegram reply - conversation is closed', [
+                'conversation_id' => $conversation->id,
+            ]);
+            $this->warnAdmin(
+                $telegramClient,
+                $messageId,
+                '⚠️ Message not delivered. The customer has closed this chat.'
+            );
+            return;
+        }
+
         Message::create([
             'conversation_id' => $conversation->id,
             'role' => 'admin',
-            'content' => $this->payload['message']['text'] ?? '',
+            'content' => $text,
         ]);
 
         TelegramMessage::create([
             'conversation_id' => $conversation->id,
+            'chat_id' => $chatId,
             'telegram_message_id' => $messageId,
         ]);
     }
@@ -94,17 +126,15 @@ class TelegramReplyJob implements ShouldQueue
     /**
      * @param TelegramClient $telegramClient
      * @param int $messageId
+     * @param string $warning
      * @return void
      */
-    private function warnAdmin(TelegramClient $telegramClient, int $messageId): void
+    private function warnAdmin(TelegramClient $telegramClient, int $messageId, string $warning): void
     {
         try {
-            $telegramClient->sendMessage(
-                "⚠️ Message not delivered. Use Reply on a customer's message so it reaches the right chat.",
-                $messageId
-            );
+            $telegramClient->sendMessage($warning, $messageId);
         } catch (ConnectionException|RequestException $e) {
-            Log::channel('ai-chat')->error('failed to send missing-reply warning to Telegram admin', [
+            Log::channel('ai-chat')->error('failed to send warning to Telegram admin', [
                 'exception' => $e->getMessage(),
             ]);
         }

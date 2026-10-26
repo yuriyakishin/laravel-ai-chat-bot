@@ -11,7 +11,7 @@ class TelegramMessage extends Model
 {
     protected $table = 'ai_chat_telegram_messages';
 
-    protected $fillable = ['conversation_id', 'telegram_message_id'];
+    protected $fillable = ['conversation_id', 'chat_id', 'telegram_message_id'];
 
     /**
      * @return BelongsTo

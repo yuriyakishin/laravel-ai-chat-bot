@@ -12,5 +12,5 @@ class LlmSetting extends Model
 
     protected $fillable = ['provider', 'settings'];
 
-    protected $casts = ['settings' => 'array'];
+    protected $casts = ['settings' => 'encrypted:array'];
 }

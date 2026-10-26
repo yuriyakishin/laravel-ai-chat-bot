@@ -78,6 +78,7 @@ class SwitchToHumanChatTool implements ToolInterface
 
         TelegramMessage::create([
             'conversation_id' => $conversation->id,
+            'chat_id' => $this->telegramClient->adminChatId(),
             'telegram_message_id' => $messageId,
         ]);
 

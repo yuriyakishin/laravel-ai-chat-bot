@@ -72,3 +72,69 @@ it('throws a retryable exception on a 5xx response', function () {
         expect($e->isRetryable())->toBeTrue();
     }
 });
+
+it('forbids tool calls with tool_choice none when the request does not allow them', function () {
+    Http::fake([
+        'api.openai.com/*' => Http::response([
+            'choices' => [['message' => ['role' => 'assistant', 'content' => 'Done']]],
+            'usage' => ['prompt_tokens' => 1, 'completion_tokens' => 1],
+        ], 200),
+    ]);
+
+    $tools = [['type' => 'function', 'function' => ['name' => 'current_datetime', 'description' => 'Now', 'parameters' => ['type' => 'object']]]];
+    $provider = new OpenAiProvider(new OpenAiSettings());
+    $provider->send(new LlmRequest([['role' => 'user', 'content' => 'hi']], $tools, allowToolCalls: false));
+
+    Http::assertSent(fn($request) => $request['tools'] === $tools && $request['tool_choice'] === 'none');
+});
+
+it('treats invalid tool call arguments as an empty array', function () {
+    Http::fake([
+        'api.openai.com/*' => Http::response([
+            'choices' => [[
+                'message' => [
+                    'role' => 'assistant',
+                    'content' => null,
+                    'tool_calls' => [[
+                        'id' => 'call_1',
+                        'type' => 'function',
+                        'function' => ['name' => 'current_datetime', 'arguments' => '{"timez'],
+                    ]],
+                ],
+            ]],
+            'usage' => ['prompt_tokens' => 1, 'completion_tokens' => 1],
+        ], 200),
+    ]);
+
+    $provider = new OpenAiProvider(new OpenAiSettings());
+    $response = $provider->send(new LlmRequest([['role' => 'user', 'content' => 'hi']]));
+
+    expect($response->content())->toBe('')
+        ->and($response->toolCalls()[0]->arguments())->toBe([]);
+});
+
+it('does not retry a 4xx response', function () {
+    Http::fake([
+        'api.openai.com/*' => Http::response(['error' => ['message' => 'invalid api key']], 401),
+    ]);
+
+    $provider = new OpenAiProvider(new OpenAiSettings());
+
+    expect(fn() => $provider->send(new LlmRequest([['role' => 'user', 'content' => 'hi']])))
+        ->toThrow(LlmProviderException::class);
+    Http::assertSentCount(1);
+});
+
+it('turns a connection failure into a retryable LlmProviderException', function () {
+    Http::fake(fn() => throw new \Illuminate\Http\Client\ConnectionException('cURL error 28'));
+
+    $provider = new OpenAiProvider(new OpenAiSettings());
+
+    try {
+        $provider->send(new LlmRequest([['role' => 'user', 'content' => 'hi']]));
+        $this->fail('Expected LlmProviderException');
+    } catch (LlmProviderException $e) {
+        expect($e->isRetryable())->toBeTrue();
+    }
+});
+

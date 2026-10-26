@@ -32,6 +32,16 @@ it('rejects an update with a mismatched secret token', function () {
         ->withArgs(fn(string $message) => str_contains($message, 'secret token mismatch'));
 });
 
+it('rejects every update when webhook_secret is not configured', function () {
+    config(['ai-chat.telegram.webhook_secret' => '']);
+    Queue::fake();
+
+    $response = postTelegramWebhook(['message' => []], secret: '');
+
+    $response->assertStatus(403);
+    Queue::assertNothingPushed();
+});
+
 it('drops an update with no reply_to_message', function () {
     Log::spy();
     Log::shouldReceive('channel')->with('ai-chat')->andReturnSelf();

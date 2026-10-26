@@ -51,20 +51,28 @@ class AiChatService implements ChatServiceInterface
             $messages[] = ['role' => 'system', 'content' => $systemPrompt];
         }
 
-        foreach ($conversation->messages()->whereIn('role', ['user', 'assistant'])->orderBy('id')->get() as $item) {
+        $history = $conversation->messages()
+            ->whereIn('role', ['user', 'assistant'])
+            ->where('content', '!=', '')
+            ->latest('id')
+            ->limit(max(1, (int)config('ai-chat.history_limit', 30)))
+            ->get()
+            ->reverse()
+            ->skipUntil(static fn($item): bool => $item->role === 'user');
+
+        foreach ($history as $item) {
             $messages[] = ['role' => $item->role, 'content' => $item->content];
         }
 
-        $maxRounds = config('ai-chat.max_tool_rounds');
+        $maxRounds = max(1, (int)config('ai-chat.max_tool_rounds'));
+        $tools = $this->toolRegistry->definitions();
 
         for ($round = 1; $round <= $maxRounds; $round++) {
-            $tools = $round < $maxRounds ? $this->toolRegistry->definitions() : [];
-
-            $response = $this->provider->send(new LlmRequest($messages, $tools));
+            $response = $this->provider->send(new LlmRequest($messages, $tools, $round < $maxRounds));
 
             event(new LlmResponseReceivedEvent($response, $conversationUuid));
 
-            if ($response->toolCalls() === []) {
+            if ($response->toolCalls() === [] || $round === $maxRounds) {
                 break;
             }
 
@@ -106,7 +114,9 @@ class AiChatService implements ChatServiceInterface
             }
         }
 
-        $conversation->messages()->create(['role' => 'assistant', 'content' => $response->content()]);
+        if ($response->content() !== '') {
+            $conversation->messages()->create(['role' => 'assistant', 'content' => $response->content()]);
+        }
 
         $result = new ChatResult(
             reply: $response->content(),

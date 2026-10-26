@@ -11,10 +11,12 @@ final readonly class LlmRequest implements LlmRequestInterface
     /**
      * @param array<int, array{role: string, content: string}> $messages
      * @param array<int, array{type: string, function: array}> $tools
+     * @param bool $allowToolCalls
      */
     public function __construct(
         private array $messages,
-        private array $tools = []
+        private array $tools = [],
+        private bool $allowToolCalls = true
     ) {
     }
 
@@ -32,5 +34,13 @@ final readonly class LlmRequest implements LlmRequestInterface
     public function tools(): array
     {
         return $this->tools;
+    }
+
+    /**
+     * @return bool
+     */
+    public function allowToolCalls(): bool
+    {
+        return $this->allowToolCalls;
     }
 }

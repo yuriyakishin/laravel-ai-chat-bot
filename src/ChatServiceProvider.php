@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace Yu\AiChatBot;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
+use InvalidArgumentException;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Cache\RateLimiting\Limit;
 use Yu\AiChatBot\Contracts\LlmProviderInterface;
 use Yu\AiChatBot\Contracts\LlmSettingsInterface;
 use Yu\AiChatBot\Contracts\ChatServiceInterface;
+use Yu\AiChatBot\Chat\ChatMode;
 use Yu\AiChatBot\Chat\RoutingChatService;
+use Yu\AiChatBot\Llm\Tools\SwitchToHumanChatTool;
 use Yu\AiChatBot\Llm\ToolRegistry;
 use Yu\AiChatBot\Chat\CurrentConversation;
 use Yu\AiChatBot\Telegram\TelegramClient;
@@ -28,11 +32,14 @@ class ChatServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/ai-chat.php', 'ai-chat');
 
-        $llm = config('ai-chat.default');
-        $config = config('ai-chat.llm.' . $llm);
-
-        $this->app->singleton(LlmProviderInterface::class, $config['provider_class']);
-        $this->app->singleton(LlmSettingsInterface::class, $config['settings_class']);
+        $this->app->singleton(
+            LlmProviderInterface::class,
+            fn($app) => $app->make($this->llmConfig()['provider_class'])
+        );
+        $this->app->singleton(
+            LlmSettingsInterface::class,
+            fn($app) => $app->make($this->llmConfig()['settings_class'])
+        );
         $this->app->singleton(ChatServiceInterface::class, RoutingChatService::class);
         $this->app->singleton(ToolRegistry::class, fn(): ToolRegistry => $this->buildToolRegistry());
         $this->app->singleton(CurrentConversation::class);
@@ -43,12 +50,32 @@ class ChatServiceProvider extends ServiceProvider
                 config('ai-chat.telegram.admin_chat_id'),)
         );
 
-        config([
-            'logging.channels.ai-chat' => [
-                'driver' => 'single',
-                'path' => storage_path('logs/ai-chat.log'),
-            ]
-        ]);
+        if (!config()->has('logging.channels.ai-chat')) {
+            config([
+                'logging.channels.ai-chat' => [
+                    'driver' => 'single',
+                    'path' => storage_path('logs/ai-chat.log'),
+                ]
+            ]);
+        }
+    }
+
+    /**
+     * @return array
+     */
+    private function llmConfig(): array
+    {
+        $llm = config('ai-chat.default');
+        $config = config('ai-chat.llm.' . $llm);
+
+        if (!is_array($config) || !isset($config['provider_class'], $config['settings_class'])) {
+            throw new InvalidArgumentException(
+                "Unknown AI chat LLM provider [{$llm}]. Set AI_CHAT_LLM_DEFAULT to one of: "
+                . implode(', ', array_keys(config('ai-chat.llm', [])))
+            );
+        }
+
+        return $config;
     }
 
     /**
@@ -59,6 +86,10 @@ class ChatServiceProvider extends ServiceProvider
         $registry = new ToolRegistry();
 
         foreach (config('ai-chat.tools') as $toolClass) {
+            if ($toolClass === SwitchToHumanChatTool::class && config('ai-chat.mode') === ChatMode::AI->value) {
+                continue;
+            }
+
             $registry->register($this->app->make($toolClass));
         }
 
@@ -77,25 +108,25 @@ class ChatServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'ai-chat');
         $this->loadTranslationsFrom(__DIR__ . '/../resources/lang', 'ai-chat');
 
-        /** registe listeners */
+        /** register listeners */
         Event::listen(
             ConversationEscalatedToHumanEvent::class,
             LogConversationEscalationListener::class
         );
 
-        /** registe ai-chat commands */
+        /** register ai-chat commands */
         if ($this->app->runningInConsole()) {
             $this->commands([PruneConversationsCommand::class]);
         }
 
-        /** registe schedule */
-        $this->app->booted(function () {
-            $this->app->make(\Illuminate\Console\Scheduling\Schedule::class)
-                ->command('ai-chat:prune')
-                ->daily();
+        /** register schedule */
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
+            if (config('ai-chat.prune_after_days') > 0) {
+                $schedule->command('ai-chat:prune')->daily();
+            }
         });
 
-        /** registe limiters */
+        /** register limiters */
         RateLimiter::for('ai-chat-widget', function ($request) {
             return Limit::perMinute(config('ai-chat.rate_limit_per_minute'))->by($request->ip());
         });

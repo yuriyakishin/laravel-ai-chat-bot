@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Yu\AiChatBot\Llm\Providers;
 
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Throwable;
 use Yu\AiChatBot\Contracts\LlmProviderInterface;
 use Yu\AiChatBot\Contracts\LlmRequestInterface;
 use Yu\AiChatBot\Contracts\LlmResponseInterface;
@@ -45,14 +48,29 @@ class AnthropicProvider implements LlmProviderInterface
 
         if ($request->tools() !== []) {
             $payload['tools'] = $this->mapTools($request->tools());
+
+            if (!$request->allowToolCalls()) {
+                $payload['tool_choice'] = ['type' => 'none'];
+            }
         }
 
-        $response = Http::withHeaders([
-            'x-api-key' => $this->settings->apiKey(),
-            'anthropic-version' => self::API_VERSION,
-        ])
-            ->retry(2, 200, throw: false)
-            ->post($this->settings->endpoint(), $payload);
+        try {
+            $response = Http::withHeaders([
+                'x-api-key' => $this->settings->apiKey(),
+                'anthropic-version' => self::API_VERSION,
+            ])
+                ->timeout((int)config('ai-chat.llm_timeout', 60))
+                ->retry(
+                    2,
+                    200,
+                    static fn(Throwable $e): bool => $e instanceof ConnectionException
+                        || ($e instanceof RequestException && $e->response->serverError()),
+                    throw: false
+                )
+                ->post($this->settings->endpoint(), $payload);
+        } catch (ConnectionException $e) {
+            throw new LlmProviderException("Anthropic request failed: {$e->getMessage()}", retryable: true);
+        }
 
         if ($response->failed()) {
             throw new LlmProviderException(
