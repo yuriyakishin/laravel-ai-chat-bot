@@ -3,6 +3,10 @@
         return;
     @endphp
 @endif
+<link rel="stylesheet" href="{{ asset('vendor/ai-chat/widget.css') }}">
+@if(config('ai-chat.widget_theme') && config('ai-chat.widget_theme') !=='default')
+    <link rel="stylesheet" href="{{ asset('vendor/ai-chat/themes/' . config('ai-chat.widget_theme') . '.css') }}">
+@endif
 <div class="ai-chat-widget" data-csrf="{{ csrf_token() }}" data-route-prefix="{{ config('ai-chat.route_prefix') }}" data-welcome="{{ config('ai-chat.welcome_message') ?? __('ai-chat::widget.welcome_message') }}" data-error-message="{{ __('ai-chat::widget.error_message') }}">
     <button type="button" class="ai-chat-bubble" id="ai-chat-bubble" aria-label="{{ __('ai-chat::widget.open_chat') }}">
         <span class="ai-chat-bubble-dot"></span>
@@ -44,8 +48,4 @@
         </form>
     </div>
 </div>
-<link rel="stylesheet" href="{{ asset('vendor/ai-chat/widget.css') }}">
-@if(config('ai-chat.widget_theme') && config('ai-chat.widget_theme') !=='default')
-    <link rel="stylesheet" href="{{ asset('vendor/ai-chat/themes/' . config('ai-chat.widget_theme') . '.css') }}">
-@endif
 <script src="{{ asset('vendor/ai-chat/widget.js') }}" defer></script>
