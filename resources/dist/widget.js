@@ -262,6 +262,8 @@
 
     function openPanel() {
         panel.classList.add('ai-chat-panel-open');
+        widget.classList.add('ai-chat-widget-open');
+        document.documentElement.classList.add('ai-chat-open');
         loadHistory();
         input.focus();
         startPolling();
@@ -269,6 +271,8 @@
 
     function closePanel() {
         panel.classList.remove('ai-chat-panel-open');
+        widget.classList.remove('ai-chat-widget-open');
+        document.documentElement.classList.remove('ai-chat-open');
         stopPolling();
     }
 
@@ -291,6 +295,10 @@
     closeButton.addEventListener('click', closePanel);
 
     clearButton.addEventListener('click', function () {
+        if (!window.confirm(widget.dataset.confirmClear || 'Clear the chat history?')) {
+            return;
+        }
+
         unsubscribe();
         messagesEl.innerHTML = '';
 

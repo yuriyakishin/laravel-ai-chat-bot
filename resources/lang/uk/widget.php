@@ -5,6 +5,7 @@ return [
     'assistant_title' => 'Асистент',
     'online_now' => 'Онлайн',
     'clear_chat' => 'Очистити чат',
+    'confirm_clear' => 'Очистити історію чату? Цю дію не можна скасувати.',
     'close_chat' => 'Закрити чат',
     'send' => 'Надіслати',
     'input_placeholder' => 'Введіть повідомлення...',

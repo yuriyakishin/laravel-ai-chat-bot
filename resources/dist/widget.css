@@ -82,7 +82,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 16px 18px;
+    padding: 14px 10px 14px 18px;
     background: linear-gradient(160deg, var(--ai-chat-accent) 0%, var(--ai-chat-accent-dark) 100%);
     color: var(--ai-chat-accent-text);
 }
@@ -124,24 +124,13 @@
     background: var(--ai-chat-status);
 }
 
-.ai-chat-close {
-    border: none;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 22px;
-    line-height: 1;
-    cursor: pointer;
-    padding: 0;
-    transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.ai-chat-close:hover {
-    opacity: 0.75;
-    transform: scale(1.1);
-}
-
+.ai-chat-close,
 .ai-chat-clear {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
     border: none;
+    border-radius: 50%;
     background: transparent;
     color: rgba(255, 255, 255, 0.85);
     display: flex;
@@ -149,12 +138,21 @@
     justify-content: center;
     cursor: pointer;
     padding: 0;
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    transition: background-color 0.15s ease;
 }
 
+.ai-chat-close {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.ai-chat-clear {
+    margin-right: 8px;
+}
+
+.ai-chat-close:hover,
 .ai-chat-clear:hover {
-    opacity: 0.75;
-    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.16);
 }
 
 .ai-chat-messages {
@@ -277,6 +275,7 @@
     .ai-chat-panel,
     .ai-chat-bubble,
     .ai-chat-close,
+    .ai-chat-clear,
     .ai-chat-send {
         transition: none;
     }
@@ -328,4 +327,35 @@
 
 .ai-chat-send:hover {
     transform: scale(1.08);
+}
+
+@media (max-width: 480px) {
+    .ai-chat-panel {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        height: 100dvh;
+        border: none;
+        border-radius: 0;
+    }
+
+    .ai-chat-widget-open .ai-chat-bubble {
+        display: none;
+    }
+
+    .ai-chat-form {
+        padding-bottom: calc(14px + env(safe-area-inset-bottom));
+    }
+
+    .ai-chat-input {
+        font-size: 16px;
+    }
+
+    html.ai-chat-open,
+    html.ai-chat-open body {
+        overflow: hidden;
+    }
 }

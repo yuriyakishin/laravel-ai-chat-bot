@@ -10,6 +10,7 @@
 <div class="ai-chat-widget" data-csrf="{{ csrf_token() }}" data-route-prefix="{{ config('ai-chat.route_prefix') }}"
      data-welcome="{{ config('ai-chat.welcome_message') ?? __('ai-chat::widget.welcome_message') }}"
      data-error-message="{{ __('ai-chat::widget.error_message') }}"
+     data-confirm-clear="{{ __('ai-chat::widget.confirm_clear') }}"
      data-broadcasting="{{ (int)config('ai-chat.broadcasting.enabled') }}">
     <button type="button" class="ai-chat-bubble" id="ai-chat-bubble" aria-label="{{ __('ai-chat::widget.open_chat') }}">
         <span class="ai-chat-bubble-dot"></span>

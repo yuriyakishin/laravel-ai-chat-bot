@@ -5,6 +5,7 @@ return [
     'assistant_title' => 'Assistent',
     'online_now' => 'Online',
     'clear_chat' => 'Chat löschen',
+    'confirm_clear' => 'Chatverlauf löschen? Dies kann nicht rückgängig gemacht werden.',
     'close_chat' => 'Chat schließen',
     'send' => 'Senden',
     'input_placeholder' => 'Nachricht schreiben...',

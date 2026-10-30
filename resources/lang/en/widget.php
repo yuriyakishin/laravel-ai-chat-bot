@@ -5,6 +5,7 @@ return [
     'assistant_title' => 'Assistant',
     'online_now' => 'Online now',
     'clear_chat' => 'Clear chat',
+    'confirm_clear' => 'Clear the chat history? This cannot be undone.',
     'close_chat' => 'Close chat',
     'send' => 'Send',
     'input_placeholder' => 'Type a message...',

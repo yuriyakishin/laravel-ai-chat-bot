@@ -5,6 +5,7 @@ return [
     'assistant_title' => 'Assistant',
     'online_now' => 'En ligne',
     'clear_chat' => 'Effacer la conversation',
+    'confirm_clear' => "Effacer l'historique de la conversation ? Cette action est irréversible.",
     'close_chat' => 'Fermer le chat',
     'send' => 'Envoyer',
     'input_placeholder' => 'Écrivez un message...',
