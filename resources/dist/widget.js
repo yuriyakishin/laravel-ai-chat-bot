@@ -16,6 +16,10 @@
     let lastMessageId = 0;
     let pollTimer = null;
 
+    const broadcastingEnabled = widget.dataset.broadcasting === '1' && typeof window.Echo !== 'undefined';
+    let echo = null;
+    let subscribedUuid = null;
+
     const avatarSvg = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>';
 
     function formatTime(isoString) {
@@ -173,7 +177,16 @@
                 if (data.messages.length > 0) {
                     lastMessageId = data.messages[data.messages.length - 1].id;
                 }
+
+                subscribe(data.conversation_uuid);
             });
+    }
+
+    function appendMessage(message) {
+        if (message.id > lastMessageId) {
+            renderMessage(message.role, message.content, message.created_at);
+            lastMessageId = message.id;
+        }
     }
 
     function pollMessages() {
@@ -182,13 +195,50 @@
         })
             .then(function (response) { return response.json(); })
             .then(function (data) {
-                data.messages.forEach(function (message) {
-                    if (message.id > lastMessageId) {
-                        renderMessage(message.role, message.content, message.created_at);
-                        lastMessageId = message.id;
-                    }
-                });
+                data.messages.forEach(appendMessage);
             });
+    }
+
+    function getEcho() {
+        if (!echo) {
+            echo = new window.Echo.constructor(Object.assign({}, window.Echo.options, {
+                authEndpoint: '/' + routePrefix + '/broadcasting/auth',
+                auth: { headers: { 'X-CSRF-TOKEN': csrfToken } },
+            }));
+        }
+
+        return echo;
+    }
+
+    function channelName(uuid) {
+        return 'ai-chat.conversation.' + uuid;
+    }
+
+    function subscribe(uuid) {
+        if (!broadcastingEnabled || !uuid || uuid === subscribedUuid) {
+            return;
+        }
+
+        unsubscribe();
+        subscribedUuid = uuid;
+        stopPolling();
+
+        getEcho().private(channelName(uuid))
+            .subscribed(pollMessages)
+            .listen('.ai-chat.message-sent', appendMessage)
+            .error(function () {
+                unsubscribe();
+                if (isPanelOpen()) {
+                    startPolling();
+                }
+            });
+    }
+
+    function unsubscribe() {
+        if (subscribedUuid) {
+            getEcho().leave(channelName(subscribedUuid));
+            subscribedUuid = null;
+        }
     }
 
     function isPanelOpen() {
@@ -197,6 +247,11 @@
 
     function startPolling() {
         stopPolling();
+
+        if (subscribedUuid) {
+            return;
+        }
+
         pollTimer = setInterval(pollMessages, 5000);
     }
 
@@ -236,6 +291,7 @@
     closeButton.addEventListener('click', closePanel);
 
     clearButton.addEventListener('click', function () {
+        unsubscribe();
         messagesEl.innerHTML = '';
 
         if (widget.dataset.welcome) {
@@ -298,6 +354,7 @@
                 if (typeof data.last_message_id === 'number') {
                     lastMessageId = data.last_message_id;
                 }
+                subscribe(data.conversation_uuid);
             })
             .catch(function () {
                 hideTyping();

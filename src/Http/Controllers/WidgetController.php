@@ -7,29 +7,34 @@ namespace Yu\AiChatBot\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Str;
 use Yu\AiChatBot\Facades\AiChat;
 use Yu\AiChatBot\Models\Conversation;
-use Yu\AiChatBot\Support\AnonymousOwner;
+use Yu\AiChatBot\Support\WidgetVisitor;
 
 class WidgetController extends Controller
 {
+    /**
+     * @param WidgetVisitor $visitor
+     */
+    public function __construct(private WidgetVisitor $visitor)
+    {
+    }
+
     /**
      * @param Request $request
      * @return JsonResponse
      */
     public function messages(Request $request): JsonResponse
     {
-        $conversation = $this->activeConversation($this->resolveOwner($request));
+        $conversation = $this->visitor->activeConversation($this->visitor->owner($request));
 
         $messages = $conversation ? $conversation->messages()
             ->whereIn('role', ['user', 'assistant', 'admin'])
             ->where('id', '>', $request->integer('after'))
             ->orderBy('id')->get(['id', 'role', 'content', 'created_at']) : collect();
 
-        return response()->json(['messages' => $messages]);
+        return response()->json(['messages' => $messages, 'conversation_uuid' => $conversation?->uuid]);
     }
 
     /**
@@ -40,7 +45,7 @@ class WidgetController extends Controller
     {
         $request->validate(['message' => 'required|string|max:4000']);
 
-        $owner = $this->resolveOwner($request);
+        $owner = $this->visitor->owner($request);
         $uuid = $this->resolveConversationUuid($owner);
 
         $result = AiChat::send($owner, $uuid, $request->string('message')->toString());
@@ -50,7 +55,11 @@ class WidgetController extends Controller
             ->messages()
             ->max('id');
 
-        return response()->json(['reply' => $result->reply(), 'last_message_id' => $lastMessageId]);
+        return response()->json([
+            'reply' => $result->reply(),
+            'last_message_id' => $lastMessageId,
+            'conversation_uuid' => $result->conversationUuid(),
+        ]);
     }
 
     /**
@@ -59,29 +68,9 @@ class WidgetController extends Controller
      */
     public function reset(Request $request): JsonResponse
     {
-        $this->activeConversation($this->resolveOwner($request))?->update(['status' => 'closed']);
+        $this->visitor->activeConversation($this->visitor->owner($request))?->update(['status' => 'closed']);
 
         return response()->json(['status' => 'ok']);
-    }
-
-    /**
-     * @param Request $request
-     * @return object
-     */
-    private function resolveOwner(Request $request): object
-    {
-        if (Auth::check()) {
-            return Auth::user();
-        }
-
-        $visitorId = $request->cookie('ai_chat_visitor_id');
-
-        if (!$visitorId) {
-            $visitorId = (string)Str::uuid();
-            Cookie::queue(Cookie::forever('ai_chat_visitor_id', $visitorId));
-        }
-
-        return new AnonymousOwner($visitorId);
     }
 
     /**
@@ -90,19 +79,6 @@ class WidgetController extends Controller
      */
     private function resolveConversationUuid(object $owner): string
     {
-        return $this->activeConversation($owner)?->uuid ?? (string)Str::uuid();
-    }
-
-    /**
-     * @param object $owner
-     * @return Conversation|null
-     */
-    private function activeConversation(object $owner): ?Conversation
-    {
-        return Conversation::where('owner_type', $owner->getMorphClass())
-            ->where('owner_id', (string)$owner->getKey())
-            ->where('status', '!=', 'closed')
-            ->latest('id')
-            ->first();
+        return $this->visitor->activeConversation($owner)?->uuid ?? (string)Str::uuid();
     }
 }

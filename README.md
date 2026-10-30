@@ -83,6 +83,7 @@ All options live in `config/ai-chat.php` after publishing. Most of them can be o
 | `AI_CHAT_HISTORY_LIMIT` | `30` | Max number of previous user/assistant messages sent to the LLM with each request. |
 | `AI_CHAT_LLM_TIMEOUT` | `60` | Timeout in seconds for one LLM request. Connection errors and 5xx responses are retried twice. |
 | `AI_CHAT_RATE_LIMIT_PER_MINUTE` | `10` | Max messages per minute a single IP address can send to the widget. |
+| `AI_CHAT_BROADCASTING_ENABLED` | `false` | Push admin replies to the widget over WebSockets instead of polling. See [Real-time admin replies](#real-time-admin-replies-broadcasting). |
 | `AI_CHAT_USE_QUEUE` | `false` | Process Telegram webhook updates on the queue. Requires a running `php artisan queue:work`. |
 | `AI_CHAT_PRUNE_AFTER_DAYS` | `30` | Conversations with no new messages for this many days are deleted daily. `0` turns pruning off. See [Pruning old conversations](#pruning-old-conversations). |
 | `AI_CHAT_WELCOME_MESSAGE` | - | Optional greeting shown before the customer sends anything. |
@@ -119,6 +120,7 @@ You can listen to these events, for example to send notifications or collect sta
 
 - `Yu\AiChatBot\Events\ConversationEscalatedToHumanEvent` - a conversation was handed off to a human in Telegram.
 - `Yu\AiChatBot\Events\LlmResponseReceivedEvent` - the LLM returned a response (includes token usage).
+- `Yu\AiChatBot\Events\AdminMessageSentEvent` - an admin reply from Telegram was saved to a conversation.
 
 To send a message from your own code, use the `AiChat` facade: `AiChat::send($owner, $conversationUuid, $message)`.
 
@@ -192,6 +194,35 @@ AI_CHAT_MODE=human
 ```
 
 Every customer message is then sent straight to your Telegram admin chat, and admin replies come back to the widget the same way as after a handoff. The Telegram settings above are required; LLM API keys are not used in this mode.
+
+### Real-time admin replies (broadcasting)
+
+By default the open widget checks for new admin replies every 5 seconds. If your app uses Laravel broadcasting with a Pusher-protocol driver (Laravel Reverb, Pusher, Soketi), the widget can receive them instantly instead:
+
+1. Set up broadcasting in your app, if you haven't yet:
+
+   ```bash
+   php artisan install:broadcasting
+   ```
+
+   This installs Reverb and creates `resources/js/echo.js`, which sets `window.Pusher` and `window.Echo`. Both must exist on every page that includes the widget, and your JS bundle must load before the widget (the default `@vite` tag in `<head>` does that).
+
+2. Enable it in `.env`:
+
+   ```
+   BROADCAST_CONNECTION=reverb
+   AI_CHAT_BROADCASTING_ENABLED=true
+   ```
+
+3. Start the WebSocket server with `php artisan reverb:start` and republish the widget assets with `php artisan vendor:publish --tag=ai-chat-assets --force`.
+
+How it works:
+
+- Each conversation has a private channel `ai-chat.conversation.{uuid}`. The widget authorizes it at its own endpoint `/{AI_CHAT_ROUTE_PREFIX}/broadcasting/auth`, which also works for guest visitors identified by the chat cookie. Your app's own `/broadcasting/auth` and channels are not touched.
+- The event is broadcast immediately, no queue worker is needed. If the broadcast fails, the reply is still saved and the error is written to the `ai-chat` log; the widget picks up missed messages when it reconnects.
+- If `window.Echo` is missing or the subscription is rejected, the widget falls back to polling.
+- The auth route is registered only when broadcasting is enabled. If you use `php artisan route:cache`, rebuild the cache after changing `AI_CHAT_BROADCASTING_ENABLED`.
+- Drivers that don't speak the Pusher protocol (for example Mercure) are not supported - leave broadcasting disabled and the widget keeps polling.
 
 ## Widget themes
 

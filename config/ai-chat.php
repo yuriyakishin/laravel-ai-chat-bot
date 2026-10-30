@@ -54,6 +54,10 @@ return [
         'webhook_secret' => env('AI_CHAT_TELEGRAM_WEBHOOK_SECRET', ''),
     ],
 
+    'broadcasting' => [
+        'enabled' => (bool)env('AI_CHAT_BROADCASTING_ENABLED', false),
+    ],
+
     'prune_after_days' => (int)env('AI_CHAT_PRUNE_AFTER_DAYS', 30),
     'rate_limit_per_minute' => (int)env('AI_CHAT_RATE_LIMIT_PER_MINUTE', 10),
 ];

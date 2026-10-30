@@ -16,6 +16,7 @@ use Yu\AiChatBot\Models\Conversation;
 use Yu\AiChatBot\Models\TelegramMessage;
 use Yu\AiChatBot\Models\Message;
 use Yu\AiChatBot\Telegram\TelegramClient;
+use Yu\AiChatBot\Events\AdminMessageSentEvent;
 
 class TelegramReplyJob implements ShouldQueue
 {
@@ -110,7 +111,7 @@ class TelegramReplyJob implements ShouldQueue
             return;
         }
 
-        Message::create([
+        $message = Message::create([
             'conversation_id' => $conversation->id,
             'role' => 'admin',
             'content' => $text,
@@ -121,6 +122,8 @@ class TelegramReplyJob implements ShouldQueue
             'chat_id' => $chatId,
             'telegram_message_id' => $messageId,
         ]);
+
+        AdminMessageSentEvent::dispatch($message);
     }
 
     /**

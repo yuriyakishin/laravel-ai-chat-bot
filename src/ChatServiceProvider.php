@@ -4,24 +4,26 @@ declare(strict_types=1);
 
 namespace Yu\AiChatBot;
 
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Support\ServiceProvider;
-use InvalidArgumentException;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\ServiceProvider;
+use InvalidArgumentException;
+use Yu\AiChatBot\Chat\ChatMode;
+use Yu\AiChatBot\Chat\CurrentConversation;
+use Yu\AiChatBot\Chat\RoutingChatService;
+use Yu\AiChatBot\Console\Commands\PruneConversationsCommand;
+use Yu\AiChatBot\Contracts\ChatServiceInterface;
 use Yu\AiChatBot\Contracts\LlmProviderInterface;
 use Yu\AiChatBot\Contracts\LlmSettingsInterface;
-use Yu\AiChatBot\Contracts\ChatServiceInterface;
-use Yu\AiChatBot\Chat\ChatMode;
-use Yu\AiChatBot\Chat\RoutingChatService;
-use Yu\AiChatBot\Llm\Tools\SwitchToHumanChatTool;
-use Yu\AiChatBot\Llm\ToolRegistry;
-use Yu\AiChatBot\Chat\CurrentConversation;
-use Yu\AiChatBot\Telegram\TelegramClient;
+use Yu\AiChatBot\Events\AdminMessageSentEvent;
 use Yu\AiChatBot\Events\ConversationEscalatedToHumanEvent;
+use Yu\AiChatBot\Listeners\BroadcastAdminMessageListener;
 use Yu\AiChatBot\Listeners\LogConversationEscalationListener;
-use Yu\AiChatBot\Console\Commands\PruneConversationsCommand;
+use Yu\AiChatBot\Llm\ToolRegistry;
+use Yu\AiChatBot\Llm\Tools\SwitchToHumanChatTool;
+use Yu\AiChatBot\Telegram\TelegramClient;
 
 class ChatServiceProvider extends ServiceProvider
 {
@@ -32,18 +34,18 @@ class ChatServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/ai-chat.php', 'ai-chat');
 
-        $this->app->singleton(
+        $this->app->scoped(
             LlmProviderInterface::class,
             fn($app) => $app->make($this->llmConfig()['provider_class'])
         );
-        $this->app->singleton(
+        $this->app->scoped(
             LlmSettingsInterface::class,
             fn($app) => $app->make($this->llmConfig()['settings_class'])
         );
-        $this->app->singleton(ChatServiceInterface::class, RoutingChatService::class);
-        $this->app->singleton(ToolRegistry::class, fn(): ToolRegistry => $this->buildToolRegistry());
-        $this->app->singleton(CurrentConversation::class);
-        $this->app->singleton(
+        $this->app->scoped(ChatServiceInterface::class, RoutingChatService::class);
+        $this->app->scoped(ToolRegistry::class, fn(): ToolRegistry => $this->buildToolRegistry());
+        $this->app->scoped(CurrentConversation::class);
+        $this->app->scoped(
             TelegramClient::class,
             fn() => new TelegramClient(
                 config('ai-chat.telegram.bot_token'),
@@ -130,5 +132,13 @@ class ChatServiceProvider extends ServiceProvider
         RateLimiter::for('ai-chat-widget', function ($request) {
             return Limit::perMinute(config('ai-chat.rate_limit_per_minute'))->by($request->ip());
         });
+
+        if (config('ai-chat.broadcasting.enabled')) {
+            $this->loadRoutesFrom(__DIR__ . '/../routes/broadcasting.php');
+            Event::listen(
+                AdminMessageSentEvent::class,
+                BroadcastAdminMessageListener::class
+            );
+        }
     }
 }
